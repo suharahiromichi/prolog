@@ -1,0 +1,65 @@
+%%
+%% Grassと互換のプリミティブを持ったlambda簡約系
+%%
+%%
+%% 最内側評価のlambda簡約系
+%%
+
+?- op(600, yfx, :).
+
+eval(E, E2) :-
+        empty_assoc(V),
+        eval(E:out:succ:119:in, V, E2).     % プリミティブを与える。
+
+eval(lambda(X, B), E, env(lambda(X, B), E)) :- !.
+eval(env(lambda(X, B), E), _, env(lambda(X, B), E)) :- !.
+eval(A, _, A) :- number(A), !.
+eval(A, E, A1) :- atom(A),
+        get_assoc(A, E, A1), !.
+eval(A, _, A) :- atom(A), !.                % 定数としての「0」
+eval(F:A, E, A2) :-
+        eval(F, E, F1),
+        eval(A, E, A1),
+        apply(F1, A1, E, A2).
+
+apply(lambda(X, B), A, E, A2) :-
+        put_assoc(X, E, A, E1),
+        eval(B, E1, A2).
+apply(env(lambda(X, B), E), A, _, A2) :-
+        put_assoc(X, E, A, E1),
+        eval(B, E1, A2).
+
+apply(succ, N, _, R) :-
+        number(N),
+        R is mod(N + 1, 256).
+apply(in, N, _, R) :-
+        get(A),                             % 「w」で get(119)を得る。
+        (A = -1 -                          % end_of_file か？
+         R = N;                             % 引数を返す。
+         R = A).                            % キャラクタのascii値を返す。
+apply(out, N, _, N) :-
+        number(N), !,
+        put(N).                             % put(119) で 「w」を印刷。
+apply(out, N, _, N) :-
+        write(N).
+
+%% 関数としての「0」（予備）
+apply(0, 0, _, lambda(x, lambda(y, x))) :- !. % T
+apply(0, _, _, lambda(x, lambda(y, y))).      % F
+%% 関数としての「119」
+apply(119, 119, _, lambda(x, lambda(y, x))) :- !. % T
+apply(119,   _, _, lambda(x, lambda(y, y))).      % F
+
+apply(F, A, E, F:A) :- atom(F), !.
+
+%%
+%% テストコード
+%%
+go :-
+        E = lambda(o, lambda(s, lambda(w, lambda(i,
+                                                 o:(w:(o:(i:w)):(s:w):w))))),
+        eval(E, R),
+        writeln(' '),
+        write('result is ...'), write(R), nl.
+
+%% END

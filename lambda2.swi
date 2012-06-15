@@ -1,0 +1,61 @@
+%%
+%% 最外側（最左側）評価のlambda簡約系
+%%
+
+?- op(600, yfx, :).
+
+eval(E, E2) :-
+        eval_loop(E, E2).
+
+eval_loop(E, E2) :-
+        beta(E, E1), !,
+        (E = E1 -                          % Eが既約か？
+         E2 = E1;                           % 終了する。
+         eval_loop(E1, E2)).                % 繰り返す。
+
+beta(lambda(X, Q):R, Q1) :- !,
+        rewrite(X, R, Q, Q1).
+beta(P:Q, P1:Q1) :- !,
+        beta(P, P1),
+        (P = P1 -                          % Pが既約か？
+         beta(Q, Q1);                       % Qを変換する。
+         Q1 = Q).                           % 一旦終了する。
+beta(P, P).
+
+%%
+%% rewrite(X, N, M, R)
+%% X: 変数
+%% N: 値
+%% M: 式
+%% R: 結果
+%%
+rewrite(X, N, X, N) :- !.
+rewrite(X, N, P:Q, P1:Q1) :-
+        rewrite(X, N, P, P1),
+        rewrite(X, N, Q, Q1).
+rewrite(X, N, lambda(Y, Q), lambda(Y, Q1)) :-
+        X \= Y, !,
+        rewrite(X, N, Q, Q1).
+rewrite(X, _, M, M).
+
+test :-
+%       trace(beta),
+        Y = lambda(f, lambda(x, f:(x:x)):lambda(x, f:(x:x))),
+        T = lambda(a, lambda(b, a)),
+        F = lambda(a, lambda(b, b)),
+        AND = lambda(a, lambda(b, a:b:F)),
+        OR = lambda(a, lambda(b, a:T:b)),
+        NOT = lambda(a, a:F:T),
+%       eval(Y:1, X1),
+%       write('result is ...'), write(X1), nl,
+        eval(OR:T:T:1:0, X1),
+        write('result is ...'), write(X1), nl,
+        eval(OR:T:F:1:0, X2),
+        write('result is ...'), write(X2), nl,
+        eval(OR:F:T:1:0, X3),
+        write('result is ...'), write(X3), nl,
+        eval(OR:F:F:1:0, X4),
+        write('result is ...'), write(X4), nl,
+        true.
+
+%% END

@@ -1,0 +1,73 @@
+/*
+  Prolog組み込み述語 bagofシリーズ
+  2011_12_30
+  
+  いずれも、bagof(+Template, :Goal, -Bag) の引数をとり、
+  GoalをみたすべてのTemplate(全解)をリストにして返す。
+
+
+  (1) bagof,setofとfindallの違い
+  Goalの自由変数をバインドする、または、しない(注)。
+  
+  (2) bagof,setofとfindallの違い
+  解が無いとfailする、または、[]を返す。
+  
+  (3) bagofとsetofの違い
+  結果をsort/2を通さない、または、通す。
+  
+  (注)
+  bagof,setofはGoalの自由変数をバインドするため、
+  ある自由変数を適当な値にバインドして成功するGoalに対するTemplateのリストは、
+  bagof,setofのオルタネートとなる。
+
+
+  findallはGoalの自由変数をバインドしないため、
+  とにかくすべての成功したGoalに対するTemplateをリストする。
+  bagof,setofでも、「Var^Goal」で、Varをバインドしない指定ができる。
+  なお、op^はなぜか左結合(xfy)なので、複数指定するときは括弧が要る。
+  */
+
+
+foo(c, c, g).
+foo(b, c, f).
+foo(b, c, e).
+foo(a, b, d).
+foo(a, b, c).
+oop(_, _, _) :- fail.
+
+
+go111 :- bagof(C, foo(A, B, C), Cs), atom(A), atom(B), write(Cs).
+/* Cs = [d,c] ; [f,e] ; [g], オルタネートとして、3解を返す。AとBは、バインドされている。*/
+
+
+go11 :- bagof(C, A^foo(A, B, C), Cs), atom(B), write(Cs).
+/* Cs = [d,c] ; [g,f,e], オルタネートとして、2解を返す。Bは、バインドされている。*/
+
+
+go1 :- bagof(C, A^(B^foo(A, B, C)), Cs), write(Cs).
+/* Cs = [g,f,e,d,c] として唯一解を返す。 */
+
+
+go3 :- findall(C, foo(A, B, C), Cs), write(Cs).
+/* Cs = [g,f,e,d,c] として唯一解を返す。 go1と同じ結果である。*/
+
+
+go1x :- bagof(C, A^(B^oop(A, B, C)), Cs), write(Cs).
+/* 解が存在しないとき、bagofは、Failする。*/
+
+
+go3x :- findall(C, oop(A, B, C), Cs), write(Cs).
+/* 解が存在しないとき、findallは成功して、Cs = [] を返す。*/
+
+
+go2 :- setof(C, A^(B^foo(A, B, C)), Cs), write(Cs).
+/* Cs = [c, d, e, f, g], setofは、結果にsort/2を通す。 */
+
+
+/*
+  規格上は、bagofが基本であるが、SWI-Prologでは、findall/3で実装されている。
+  また、findall/4も存在する。cdr部を指定できる。
+  */
+
+
+%% END.

@@ -1,0 +1,153 @@
+%%
+%% 配列のサイズが決まっている場合に、
+%% 配列の一部または全体の代入を許し、
+%% それをmemcpyに変換する、コード変換プログラム。
+%% ただし、配列のオリジンを指定できるものとする。
+%%
+
+%%
+%% Fortranは、仮引数であっても配列のサイズを指定する必要がある。
+%% その意味で、この例に該当する。
+%% なお、Fortranの場合は、実引数と仮引数、equivalence文の両辺の間で、
+%% 「結合」する必要があるが、これは、
+%% 仮引数をポインタに変換し、実引数の先頭アドレスで「初期化」することで実現する。
+%%
+
+%% 演算子の構文木上の定義は、以下とする。
+%% a[1]    aref(a, 1)
+%% *a      ref(a)
+%% &a      adr(a)
+
+%%
+%% 配列変数の定義
+%% intでなくても、構造体名でもかまわない。
+%%
+
+%% int a[10:20][20:30][10:15];
+%% int b[10:40][1:6];
+%% int c[20][11][6];
+
+a - array(10:20, array(20:30, array(10:15, int))).
+b - array(10:40, array(1:6, int)).
+c - array(20, array(11, array(6, int))).
+
+%
+% C定義に変更する。
+%
+
+cgc(Var - Type, Var - Type2) :- !,
+        cgc_type(Type, Type2).
+
+cgc_type(array(S:E, Type), array(I, Type2)) :- !,
+        I is E - S,
+        cgc_type(Type, Type2).
+cgc_type(array(I, Type), arrayI, Type2)) :- !, % 1オリジンなら。
+        cgc_type(Type, Type2).
+cgc_type(Type, Type).
+
+%
+% 配列参照を含む式の、
+% アドレス、型、サイズを求める。
+%
+
+ats(Exp) :-
+        ats(Exp, Adrs, Type, Size),
+        write(Exp), nl,
+        write(Adrs), nl,
+        write(Type), nl,
+        write(Size), nl, nl.
+
+%% 参照時の最外だけ、範囲指定できる。
+ats(Exp,
+    Adrs, Type2, Size) :- !,
+        ats2(Exp, Adrs, Type, true),        % 参照の最外だけ、範囲指定を許す。
+        cgc_type(Type, Type2),              % C型に変更
+        type_size(Type2, Size).             % サイズを求める。
+
+ats2(aref(Exp, I), add(Adrs2, A2), Type2, Is_Outer) :-
+        (Is_Outer = true -                 % 参照は、
+         (I = A:_; A = I );                 % 範囲指定でもどちらでもよい。
+         I \= _:_, A = I),                  % 範囲指定は許さない。
+        (ats2(Exp, Adrs, array(S:_, Type), false);
+         ats2(Exp, Adrs, array(_, Type), false), S = 0 ),
+        (I = A:B -                         % 範囲指定の場合
+         Type2 = array(A:B, Type);          % 指定が新たな範囲となる。
+         Type2 = Type),
+        (atom(Adrs) -
+         Adrs2 = Adrs;
+         Adrs2 = ref(Adrs)),
+        (number(A), number(S) -
+         A2 is A - S;
+         A2 = sub(A, S)).
+ats2(Var, Var, Type, _) :-
+        atomic(Var), !,
+        (Var - Type).
+
+type_size(array(Idx, Type), Size*Idx) :- !,
+        type_size(Type, Size).
+type_size(Type, sizeof(Type)).
+
+%
+% 代入文の変換をおこなう。
+%
+cg(set(L, R), asign(ref(LA), ref(RA))) :-
+        ats(L, LA, T, S),                   % サイズと型が一致して、
+        ats(R, RA, T, S),
+        T \= array(_, _), !,                % 配列ではない。
+        write('assign: '), writeln(T).
+cg(set(L, R), memcpy(LA, RA, LS)) :-
+        ats(L, LA, T, LS),
+        ats(R, RA, _T, _S),
+        write('copying: '), writeln(T).
+
+go :-
+        test1, nl, test2.
+
+%%
+%% a[13][25:27] = b[15:17];
+%% =
+%% copying: array(3, array(5, int))
+%% memcpy(add(ref(add(a, 3)), 5), add(b, 5), sizeof(int)*5*2)
+%%
+%% copying are int[2][5].
+%% memcpy(*(a + 3) + 5, b + 5, sizeof(int)*5*2);
+%%
+test1 :-
+        cg(set(aref(aref(a, 13), 25:27),
+               aref(b, 15:17)),
+           RESULT),
+        write(RESULT), nl.
+
+%%
+%% a[13][25][11] = b[15][2];
+%% =
+%% assign: int
+%% asign(ref(add(ref(add(ref(add(a, 3)), 5)), 1)), ref(add(ref(add(b, 5)), 1)))
+%%
+%% *(*(*(a + 3) + 5) + 1) = *(*(b + 5) + 1)
+%% a[3][5][1] = b[5][1]
+%%
+test2 :-
+        cg(set(aref(aref(aref(a, 13), 25), 11 ),
+               aref(aref(b, 15), 2 )),
+           RESULT),
+        write(RESULT), nl.
+
+go0 :-
+        ats(a),
+        ats(aref(a, 13)),
+        ats(aref(aref(a, 13), 25:27)),
+        ats(aref(aref(aref(a, 13), 25), 11)).
+
+go1 :-
+        ats(b),
+        ats(aref(b, 15:17)),
+        ats(aref(aref(b, 15), 2)).
+
+go2 :-
+        ats(c),
+        ats(aref(c, 3)),
+        ats(aref(aref(c, 3), 5:7)),
+        ats(aref(aref(aref(c, 3), 5), 1)).
+
+%% END.

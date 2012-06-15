@@ -1,0 +1,53 @@
+%% 基本の高階述語
+%% 1次元のリストだけを前提とする。
+
+
+%% map
+map(P, L) :-
+        maplist(L, P).
+map(P, L, M) :-
+        maplist(L, M, P).
+map(P, L, M, N) :-
+        maplist(L, M, N, P).
+map(P, L, M, N, O) :-
+        maplist(L, M, N, O, P).
+
+
+mapat(Pred, [E | List], [E2 | List], 1) :- !,
+        call(Pred, E, E2).
+mapat(Pred, [E | List], [E | List2], R) :-
+        R2 is R - 1,
+        mapat(Pred, List, List2, R2).
+
+
+%% N回繰り返し適用する。
+nest(_, N, X, X) :-
+        (var(N) ; N =< 0), !.
+nest(P, N, X, X2) :-
+        call(P, X, X1),
+        N2 is N - 1,
+        nest(P, N2, X1, X2).
+
+
+nestlist(_, N, X, [X]) :-
+        (var(N) ; N =< 0), !.
+nestlist(P, N, X, [X2|L2]) :-
+        call(P, X, X2),
+        N2 is N - 1,
+        nestlist(P, N2, X2, L2).
+
+
+%% 左側にたたむ。
+fold(_, X, [], X) :- !.
+fold(P, X, [Y|L], X2) :-
+        call(P, X, Y, X1),
+        fold(P, X1, L, X2).
+
+
+foldlist(_, X, [], [X]) :- !.
+foldlist(P, X, [Y|L], [X|M]) :-
+        call(P, X, Y, X1),
+        foldlist(P, X1, L, M).
+
+
+%% END.

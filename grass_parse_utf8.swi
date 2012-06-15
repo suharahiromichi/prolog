@@ -1,0 +1,85 @@
+%% Grass言語パーサ
+%%
+
+%% サンプルは、以下のページから。
+%% http://www.ueda.info.waseda.ac.jp/~ohtani/wiki/index.php?Grass
+
+go :-
+        go1("wwwWWWwWWWwwWWw"),
+        go1("wWWwwww"),
+        go1("ｗＷＷｗｗｗｗＷＷｗｗ"),
+        go1("wWWwvWwwww"),
+        go1("wwWWwWWWwvWwwwWwwwwwWWWWw"),
+        go1("wwWWwv wwwwWWWwwWwwWWWWWWwwwwWwwv wWWwwwWwwwwWwwwwwwWwwwwwwwww").
+
+gogo :-
+        go1("wwvwwwWWWwwWwwWWWWwvwWWwwwWwwvwWwwwWwwvwWWwWWWWWwvwWWWwwwwWWWWwWWWWwWW WWWWwWWWWWWWwWWWWWWWwWWWWWWWWwWwwwwwwwwvwWWWwwwwwWWWWWwWWWWWwWWWWWWWwW WWWWWWWwWWWWWWWWWwWwwwwwwwvwWWWWwwwwwwWWWWWWwWWWWWWwWWWWWWWwWWWWWWWWWw WWWWWWWWWwWwwwwwwwvwWWWWWwwwwwwwWWWWWWWwWWWWWWWWwWWWWWWWWwWWWWWWWWWWwW WWWWWWWWWwWwwwwwwwvwWWWWWWWwwwwwwwwWWWWWWWWwWWWWWWWWWwWWWWWWWWWwWWWWWW WWWWWwWwwwwwwvwWWWWWWWWwwwwwwwwwWWWWWWWWwWWWWWWWWWwWWWWWWWWWWWwWWWWWWW WWWWwWWWWWWWWWWWWWwWwwwwwwwvwWWWWWWWWwwwwwwwwwwWWWWWWWWWwWWWWWWWWWWwWW WWWWWWWWWwWWWWWWWWWWWWWwWwwwwwwvwWWWWWWWWWWwwwwwwwwwwwWWWWWWWWWWwWWWWW WWWWWWwWWWWWWWWWWWWWwWwwwwwvwWWWWWWWWWWwwwwwwwwwwwwWWWWWWWWWWWWwWWWWWW WWWWWWWwWWWWWWWWWWWWWWwWWWWWWWWWWWWWWwWWWWWWWWWWWWWWWWwWwwwwwwwvwWWWWW WWWWWwwwwwwwwwwwwwwwwwWwwwwwwwwwwwwwwwwwwwWWWwwwwwwwwwwwwwwwwwwwWwwWWW WWWWWWWWWWWWWWWWWwvwWWwwwwWWWwwwwwwwwwwWWWWwwwwwwwwwwWWWWWwwwwwwwwwwww wWWWWWWwwwwwwwWWWWWWWwwwwwwwwwwwWWWWWWWWwwwwwwwwwwwwwwwwwwwwwwvwWWWWWW WWWWWWWWWWwwwwwwwWwwvwWWWWwwwwwwwWWWWWwwwWWWWWWwwwwwwwWWWWWWWwwwwwwwwW WWWWWWWwwwwwwwwwwwwwwWWWWWWWWWwwwwwwwwwwwwwwvwWWwWWWWWw").
+       
+go1(W) :-
+        parse(W, Result),
+        writeln(Result),
+        writeln('---').
+
+%%% concrete syntax to abstract syntax
+
+parse(W, S) :-
+        convert(W, R), !,
+        prog(R, S), !.
+
+kleene1([H], H).
+kleene1([H|T], H) :- kleene1(T, H).
+
+app(X, Fn, Arg) :-
+char_code('w', LW),
+        char_code('W', UW),
+append(A, B, X),
+kleene1(A, UW),
+        kleene1(B, LW),
+length(A, Fn),
+        length(B, Arg).
+
+app0([], []).
+app0(X, [app(Fn, Arg)|T]) :-
+append(A, B, X),
+app(A, Fn, Arg),
+        app0(B, T).
+
+abs(X, N, C) :-
+char_code('w', LW),
+append(A, B, X),
+kleene1(A, LW),
+        app0(B, C),
+        length(A, N).
+
+prog(Abs, [abs(N, C)]) :-
+        abs(Abs, N, C).
+prog(Prog_V_Abs, Z) :-
+char_code('v', V),
+append(Prog, [V|Abs], Prog_V_Abs),
+prog(Prog, P1),
+        abs(Abs, N, C),
+append(P1, [abs(N, C)], Z).
+prog(Prog_V_Apps, Z) :-
+char_code('v', V),
+append(Prog, [V|Apps], Prog_V_Apps),
+prog(Prog, P1),
+        app0(Apps, P2),
+append(P1, P2, Z).
+
+convert([], []).
+convert([LW|T], [LW|Rest]) :-
+char_code('w', LW), !, convert(T, Rest).
+convert([UW|T], [UW|Rest]) :-
+char_code('W', UW), !, convert(T, Rest).
+convert([LV|T], [LV|Rest]) :-
+char_code('v', LV), !, convert(T, Rest).
+convert([LW2|T], [LW|Rest]) :-
+char_code('ｗ', LW2), !, char_code('w', LW), convert(T, Rest).
+convert([UW2|T], [UW|Rest]) :-
+char_code('Ｗ', UW2), !, char_code('W', UW), convert(T, Rest).
+convert([LV2|T], [LV|Rest]) :-
+char_code('ｖ', LV2), !, char_code('v', LV), convert(T, Rest).
+convert([_|T], Rest) :-
+convert(T, Rest).
+
+%% END.

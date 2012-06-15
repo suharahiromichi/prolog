@@ -1,0 +1,95 @@
+%%
+%% de Bruijn Index 評価器
+%%
+ 
+?- op(600, yfx, :).
+ 
+%%
+%% beta簡約
+%%
+
+
+eval(E, E2) :-
+        eval_loop(E, E2).
+
+
+eval_loop(E, E2) :-
+        beta(E, E1), !,
+        (E = E1 ->                          % Eが既約か？
+         E2 = E1;                           % 終了する。
+         eval_loop(E1, E2)).                % 繰り返す。
+
+
+beta(lambda(Q):R, Q1) :- !,
+        rewrite(Q, R, 1, Q1).
+beta(P:Q, P1:Q1) :- !,
+        beta(P, P1),
+        (P = P1 ->                          % Pが既約か？
+         beta(Q, Q1);                       % Qを変換する。
+         Q1 = Q).                           % 一旦終了する。
+beta(P, P).
+
+
+%%
+%% rewrite(M, I, N, R)
+%%
+%% ↓M : 置換被対象の式
+%% ↓I : コンテキストのインデックス
+%% ↓N : 置換対象の式
+%% ↑R : 置換結果
+
+
+rewrite(ML:MR, N, I, ML2:MR2) :- !,
+        rewrite(ML, N, I, ML2),
+        rewrite(MR, N, I, MR2).
+rewrite(lambda(M), N, I, lambda(R)) :- !,
+        I1 is I + 1,
+        rewrite(M, N, I1, R).
+rewrite(M, N, I, R) :-
+        number(M), !,
+        (M = I ->                           % 書換対象の変数
+         fixfree(N, I, R);
+         M < I ->                           % 束縛変数
+         R = M;
+         true ->                            % 自由変数
+         R is M - 1).
+rewrite(M, _, _, M).                        % 文字定数
+
+
+fixfree(lambda(M), I, lambda(R)) :- !,
+        I1 is I + 1,
+        fixfree(M, I1, R).
+fixfree(ML:MR, I, ML2:MR2) :- !,
+        fixfree(ML, I, ML2),
+        fixfree(MR, I, MR2).
+fixfree(N, I, R) :-
+        number(N),
+        (N =< I ->                          % 束縛変数
+         R = N;
+         true ->                            % 自由変数
+         R is N + I).
+fixfree(N, _, N).                           % 文字定数
+       
+%%
+%% test
+%%
+
+
+go1 :-
+        eval(lambda(lambda(2)):1, R),
+        write(R), nl.
+
+
+go :-
+            I = lambda(1),
+            K = lambda(lambda(2)),
+            S = lambda(lambda(lambda((3:1) : (2:1)))),
+            B = lambda(lambda(lambda(3:(2:1)))),
+            C = lambda(lambda(lambda((3:1):2))),
+            Y = lambda( lambda(2:(1:1)) : lambda(2:(1:1)) ),
+%       eval(S:0          , R),
+        eval((S:K:K):a, R),                 % 自由変数は「1」ではうまくいかない。
+        write(R), nl.
+
+
+%% END

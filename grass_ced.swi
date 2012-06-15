@@ -1,0 +1,102 @@
+%% Grass言語
+%% ちょっと草植えときますね型言語 Grass
+%% CEDマシン
+%% 2010/03/20
+
+
+%% リリカル☆Lisp開発日記
+%% http://blog.bugyo.tk/lyrical/archives/106
+%% もとに修正した。
+
+
+go0 :-
+        eval([abs(1, [app(2, 4), app(2, 2)])], _). % 無限に草植えときますね。
+go3 :-
+        eval([abs(2, [app(2, 2), app(1, 2)]), % Ｙコンビネータ
+              abs(2, [app(3, 1), app(3, 1)]),
+              abs(1, [app(2, 1), app(1, 1)])], _).
+go1 :-
+        eval([abs(1, [app(2, 4)])], _R).
+
+
+go2 :-
+        L = [
+             abs(2, [
+                     app(2, 1)
+                    ]),
+             abs(4, [
+                     app(3, 2), app(1, 2), app(6, 4), app(1, 2)
+                    ]),
+             abs(1, [
+                     app(2, 3), app(1, 4), app(1, 6), app(1, 9)
+                    ])],
+        eval(L, _R).
+
+
+
+
+%%% evaluator
+%%
+
+
+eval(Prog, Result) :-
+        char_code('w', LW),
+        eval_iter(Prog,                                                % C
+                  [cl(out, []), cl(succ, []), cl(LW, []), cl(in, [])], % E
+                  [cl([app(1, 1)], []), cl([], [])],                   % D
+                  Result), !.
+
+
+eval_iter([], [F], [], F).
+eval_iter(C, E, D, Result) :-
+        reduce(C, E, D, C2, E2, D2),
+        eval_iter(C2, E2, D2, Result).
+
+
+%%% reduction rule
+%% reduce(C, E, D, C2, E2, D2)
+%% C, C2: Code
+%% E, E2: 環境
+%% D, D2: Dump
+       
+reduce([app(M, N) | C],   E,                            D,
+       Cm,                [cl(Cn, En) | Em],            [cl(C, E) | D]) :-
+        nth1(M, E, cl(Cm, Em)),
+        nth1(N, E, cl(Cn, En)).
+reduce([abs(1, C1) | C],  E,                            D,
+       C,                 [cl(C1, E) | E],              D).
+reduce([abs(N, C1) | C], E,                             D,
+       C,                 [cl([abs(M, C1)], E) | E],    D) :-
+        N > 1,
+        M is N - 1.
+reduce(out,               [cl(Code, []) | E],           D,
+       [],                [cl(Code, []) | E],           D) :-
+        number(Code),
+        format('~s', [[Code]]).
+reduce(in,                [Arg | E],                    D,
+       [],                [cl(Ret, []) | E],            D) :-
+        read_and_check(Arg, Ret).
+reduce(succ,              [cl(Code, []) | E],           D,
+       [],                [cl(Code2, []) | E],          D) :-
+        Code2 is (Code + 1) mod 256.
+reduce(N,                 [cl(N, []) | E],              D,
+       [],                [cl([abs(2, [app(3, 1)])], []) | E], D) :-
+        number(N).
+reduce(N,                 [cl(M, []) | E],              D,
+       [],                [cl([abs(1, [])], []) | E],   D) :-
+        number(N),
+        number(M),
+        N =\= M.
+reduce([],                [F | _],                      [cl(C1, E1) | D],
+       C1,                [F | E1],                     D).
+
+
+read_and_check(Arg, Ret) :-
+        get(A), !,
+        read_and_check_sub(A, Arg, Ret).
+read_and_check_sub(0x1A, Arg, Arg).
+read_and_check_sub(A, _, A) :-
+        A =\= 0x1A.
+
+
+%% END.

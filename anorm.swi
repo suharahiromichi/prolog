@@ -1,0 +1,180 @@
+%%
+%% A-normalization Compiler
+%%
+%%
+%% The Essence of Compiling with Continuations (1993)  (Make Corrections)
+%% Cormac Flanagan, Amr Sabry, Bruce F. Duba, Matthias Felleisen
+%%
+%% Figure 9. を Prologに書き換えたもの。
+%% normalize自体が、CPS (continuation passing style) で書かれている。
+%% 論文にあるように、すべての変数をユニークにするフロントエンドも作成した。
+%%
+%% Grass言語のための正規形を参考に、
+%% lambda(x, a):b と let(x=b, a) を同一に扱う規則を追加した。
+%%
+
+?- op(600, yfx, :).
+
+go :-
+        (false -
+         trace(normalize),
+         trace(normalize_name),
+         trace(normalize_name_s);
+         true),
+        anorm(let(a=let(b=1, b), a), R1),
+        anorm(f:let(x=1, f:x), R2),
+        anorm(f:g:h:let(x=1, f:x), R11),
+        anorm(f:(f:2):let(x=1, f:x), R12),
+        anorm(let(x=let(x=0, x), x), R3),
+        anorm(let(a=3, a):4, R4),
+        anorm([1, f:2, let(a=3,a), 4, 5]:b, R5),
+        anorm(lambda(a, a):lambda(b, lambda(c, let(a=a, a):b)), R6),
+        anorm(if0(f:x, f:x, f:x):z, _),
+        anorm(lambda(a, let(b=lambda(x,x), b:a)):1, _),
+        true.
+
+
+anorm(M, R) :- !,
+        fec(M, M1),
+        normalize(M1, R),
+        (true -
+         write(M), nl,
+         write(M1), nl,
+         write(R), nl,
+         nl;
+         true).
+
+%%%%%%%%%%%%%%%%%%%
+%% Front End
+%%%%%%%%%%%%%%%%%%%
+
+fec(A, A) :-
+        atomic(A), !.
+fec([H|T], [H1|T1]) :- !,
+        fec(H, H1),
+        fec(T, T1).
+fec(lambda(X, B), lambda(X1, B2)) :- !,
+        gensym(X, X1),
+        fec(B, B1),
+        rewrite(X, X1, B1, B2).
+fec(let(X=E, M), let(X1=E1, M2)) :- !,
+        gensym(X, X1),
+        fec(E, E1),
+        fec(M, M1),
+        rewrite(X, X1, M1, M2).
+fec(if0(C, T, E), if0(C1, T1, E1)) :- !,
+        fec(C, C1),
+        fec(T, T1),
+        fec(E, E1).
+fec(F:M, F1:M1) :- !,
+        fec(F, F1),
+        fec(M, M1).
+
+%%%%%%%%%%%%%%%%%%%
+%% A-Normalize
+%%%%%%%%%%%%%%%%%%%
+
+normalize(M, R) :- !,
+        normalize(M, id, R).
+
+normalize([], K, R) :- !,
+        call(K, [], R).
+normalize([M1|M2], K, R) :- !,
+        normalize_name(M1, p51(K, M2), R).
+
+normalize(lambda(X, BODY), K, R) :- !,
+        normalize(BODY, BODY1),
+        call(K, lambda(X, BODY1), R).
+normalize(lambda(X, M2):M1, K, R) :- !,        % 追加、letと同じ。
+        normalize(M1, p1(K, X, M2), R).
+normalize(let(X=M1, M2), K, R) :- !,
+        normalize(M1, p1(K, X, M2), R).
+normalize(if0(M1, M2, M3), K, R) :- !,
+        normalize_name(M1, p3(K, M2, M3), R).
+normalize(A, K, R) :-
+        atomic(A), !,
+        call(K, A, R).
+normalize(FN:MS, K, R) :-
+        is_primitive_op(FN), !,
+        normalize_name(MS, p4(K, FN), R).
+normalize(FN:MS, K, R) :- !,
+        normalize_name(FN, p5(K, MS), R).
+normalize(M, K, R) :- !,
+        call(K, M, R).
+
+normalize_name(M, K, R) :-
+        normalize(M, p7(K), R).
+
+normalize_name_s(A, K, R) :-
+        atomic(A), !,
+        call(K, A, R).
+
+%%% 補助
+
+is_primitive_op(inc).
+is_primitive_op(dec).
+is_primitive_op(f).
+is_primitive_op(g).
+is_primitive_op(h).
+is_primitive_op(p).
+is_primitive_op(q).
+
+is_value(N) :-
+        atomic(N).
+       
+%%% lambda
+
+id(X, X).
+  
+p1(K, X, M2, N1, let(X=N1, R)) :- !,
+        normalize(M2, K, R).
+%p2(K, M2, M3, N1, if0(N1, R2, R3)) :- !,
+%        normalize(M2, K, R2),
+%        normalize(M3, K, R3).
+p3(K, M2, M3, T, R) :- !,
+        call(K, if0(T, R2, R3), R),
+        normalize(M2, R2),
+        normalize(M3, R3).
+p4(K, T, TS, R) :-
+        call(K, T:TS, R).
+p5(K, MS, T, R) :-
+        normalize_name(MS, p4(K, T), R).
+%%%%%%% normalize としても、変わらない？
+
+p41(K, T, TS, R) :-
+        call(K, [T|TS], R).
+p51(K, MS, T, R) :-
+        normalize(MS, p41(K, T), R).
+%% これが normalize_name だと、let(t10=[4|t9] ... となり、
+%% きれいなリストの形状にならない。
+
+p7(K, N, R) :-
+        is_value(N), !,
+        call(K, N, R).
+p7(K, N, let(T=N, R)) :-
+        gensym(t, T),
+        call(K, T, R).
+
+%%
+%% rewrite(X, N, M, R)
+%% X: 変数
+%% N: 値
+%% M: 式
+%% R: 結果
+%%
+rewrite(X, N, X, N) :- !.
+rewrite(X, N, P:Q, P1:Q1) :- !,
+        rewrite(X, N, P, P1),
+        rewrite(X, N, Q, Q1).
+rewrite(X, N, lambda(Y, Q), lambda(Y, Q1)) :- !,
+        (X \= Y -
+         rewrite(X, N, Q, Q1);
+         Q1 = Q).
+rewrite(X, N, let(Y=M, Q), let(Y=M1, Q1)) :- !,
+        rewrite(X, N, M, M1),
+        (X \= Y -
+         rewrite(X, N, Q, Q1);
+         Q1 = Q).
+rewrite(_, _, M, M).
+
+%% END

@@ -1,0 +1,55 @@
+%%
+%% Prolog in Prolog
+%%
+
+go :-
+        resolve(append([1,2,3], [4,5,6], X)),
+        write(X), nl.
+go1 :-
+        resolve(append(X, Y, [1,2,3,4,5,6])),
+        write(X), write(Y), nl.
+go2 :-
+        resolve(append2([1,2,3], [4,5,6], X)),
+        write(X), nl.
+go3 :-
+        resolve(append2(X, Y, [1,2,3,4,5,6])),
+        write(X), write(Y), nl.
+re(X) :-
+        resolve(X),
+        write(X), nl.
+
+append([A|L], B, [A|L2]) :-
+        append(L, B, L2).
+append([], B, B).
+
+append2(L, B, L2) :-
+        L = [A|L0] -
+        append2(L0, B, L1),
+        L2 = [A|L1];
+        L2 = B.
+
+%%
+%% Solver
+%%
+
+resolve(true) :- !.
+resolve((Goal, Rest)) :- !,
+        resolve(Goal),
+        resolve(Rest).
+resolve(A = B) :- !,
+        A = B.
+resolve(P - Q ; R) :- !,
+        resolve(P) -
+        resolve(Q);
+        resolve(R).
+resolve(Goal) :-
+        resolve(Goal, 1).
+
+resolve(Goal, N) :-
+        nth_clause(Goal, N, Ref), !,
+        (clause(Goal, Body, Ref),
+         resolve(Body);
+         N1 is N + 1,
+         resolve(Goal, N1)).
+
+%% END

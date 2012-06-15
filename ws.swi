@@ -1,0 +1,58 @@
+%
+% Whitespace
+%
+/*
+  使い方：
+  pl -f ws.swi [options] sample.ws
+*/
+
+?- ['ws-ps.swi'].
+?- ['ws-vm.swi'].
+
+get_options([debug|ARGS],    FILENAME, true,  LISTING, TRACE, HEAP) :-
+        get_options(ARGS,    FILENAME, _,     LISTING, TRACE, HEAP).
+get_options([list|ARGS],     FILENAME, DEBUG, true,    TRACE, HEAP) :-
+        get_options(ARGS,    FILENAME, DEBUG, _,       TRACE, HEAP).
+get_options([trace|ARGS],    FILENAME, DEBUG, LISTING, true,  HEAP) :-
+        get_options(ARGS,    FILENAME, DEBUG, LISTING, _,     HEAP).
+get_options([heap|ARGS],     FILENAME, DEBUG, LISTING, TRACE, true) :-
+        get_options(ARGS,    FILENAME, DEBUG, LISTING, TRACE, _).
+get_options([FILENAME|ARGS], FILENAME, DEBUG, LISTING, TRACE,  HEAP) :-
+        atom_to_chars(FILENAME, XL),
+        reverse(XL, [115, 119, 46|_]), !,   % ['s', 'w', '.'|_]
+        get_options(ARGS,    _,        DEBUG, LISTING, TRACE, HEAP).
+get_options([_|ARGS],        FILENAME, DEBUG, LISTING, TRACE, HEAP) :-
+        get_options(ARGS,    FILENAME, DEBUG, LISTING, TRACE, HEAP).
+get_options([],             'stdin',   false, false,   false, false).
+
+options :-
+        current_prolog_flag(argv, ARGS),
+        get_options(ARGS, FILENAME, DEBUG, LISTING, TRACE, HEAP),
+        assert(arg_filename(FILENAME)),
+        assert(opt_debug(DEBUG)),
+        assert(opt_listing(LISTING)),
+        assert(opt_trace(TRACE)),
+        assert(opt_heap(HEAP)),
+        (opt_debug(true) -
+         write('Whitespace src:   '), write(FILENAME), nl,
+         write('Debug:            '), write(DEBUG), nl,
+         write('Listing Only:     '), write(LISTING), nl, % not execute
+         write('Instructon Trace: '), write(TRACE), nl,
+         write('Heap Trace:       '), write(HEAP), nl,
+         write('Please go. manually.'), nl;
+         true).
+
+go:-
+        (arg_filename(stdin) - true;
+         arg_filename(FILENAME), see(FILENAME)),
+        ps(E), !,
+        (arg_filename(stdin) - true;
+         seen),
+        (opt_listing(true) - write_list(E);
+         vm(E)).
+
+?- options.
+?- (opt_debug(false) - go; true).
+?- (opt_debug(false) - halt; true).
+
+%% END

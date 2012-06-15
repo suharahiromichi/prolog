@@ -1,0 +1,90 @@
+%%
+%% de Bruijn Index
+%%
+ 
+?- op(600, yfx, :).
+ 
+%%
+%% 正変換
+%%
+ 
+dbi(Exp, Dbi) :-
+        empty_assoc(Env),
+        dbi(Exp, Env, 0, _, Dbi).
+ 
+%%
+%% dbi(↓ラムダ式, ↓環境,
+%% ↓自由変数のインデックス，↑自由変数の更新されたインデクス，
+%% ↑de Brijnインデックス)
+%%
+dbi(M:N, Env, F, F2, M2:N2) :- !,
+        dbi(M, Env, F, F1, M2),
+        dbi(N, Env, F1, F2, N2).
+
+
+dbi(let(X=N, M), Env, F, F2, D) :- !,
+            dbi(lambda(X, M):N, Env, F, F2, D).
+dbi(lambda(X, M), Env, F, F2, lambda(D)) :-
+        atom(X), !,
+        map_assoc(inc, Env, Env1),
+        put_assoc(X, Env1, 1, Env2),
+%%%     max_assoc(Env2, _, F1),
+        assoc_to_values(Env2, L),
+        max_list(L, F1),
+        dbi(M, Env2, F1, F2, D).
+ 
+%% +1してもよいが、
+%% 現在の最大のインデックスの値を使う。
+%% 自由変数は、その文脈のde Bruijn Indexより大きい数ならよいので。
+ 
+dbi(X, Env, F, F, N) :-
+        atom(X),
+        get_assoc(X, Env, N), !.
+dbi(_, _, F, F1, F1) :-
+        F1 is F + 1.
+ 
+inc(N, N1) :-
+        N1 is N + 1.
+ 
+%%
+%% 逆変換
+%%
+ 
+rbi(Exp, Dbi) :-
+        rbi(Exp, 0, Dbi).
+rbi(M:N, I, M2:N2) :- !,
+        rbi(M, I, M2),
+        rbi(N, I, N2).
+rbi(lambda(M), I, lambda(X, M2)) :- !,
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
+rbi(N, I, X) :-
+        integer(N),
+        N =< I, !,                          % bound
+        N1 is I - N + 1,
+        atom_concat(x, N1, X).
+rbi(N, I, X) :-
+        atom_concat(x, N, X).               % free
+ 
+%% sample
+ 
+go1 :-
+        dbi(lambda(z, lambda(y, y:lambda(x, x)):(lambda(x, z:x))), D),
+        write(D), nl.
+go2 :-
+        dbi(lambda(z, lambda(y, u:y:lambda(x, x)):(lambda(x, v:z:x))), D),
+        write(D), nl.
+go :-
+        E = lambda(x, lambda(y, z:x:lambda(u, u:x))):lambda(x, w:x),
+        write(E), nl,
+        dbi(E, D),
+        write(D), nl,
+        rbi(D, L),
+        write(L), nl.
+%% (λx. λy. z x (λu. u x)) (λx. w x).
+%% lambda(x, lambda(y, z:x:lambda(u, u:x))):lambda(x, w:x)
+%% lambda(lambda(3:2:lambda(1:3))):lambda(2:1)
+%% lambda(x1, lambda(x2, x3:x1:lambda(x3, x3:x1))):lambda(x1, x2:x1)
+ 
+%%% END

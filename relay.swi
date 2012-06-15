@@ -1,0 +1,94 @@
+%%
+%% リレー計算機のモデル
+%%
+%% リレーの回路は、和田先生のblogから。
+%% http:/parametron.blogspot.com/2010/08/blog-post.html
+%%
+
+
+%% rly(X, Y, Common, Break, Make).
+        
+rly(S, S, C, C, _) :- !.
+rly(_, _, C, _, C).
+
+
+lmp(Id, S, S) :- !,
+        write('Lamp:'), write(Id), write(' '), writeln(0).
+lmp(Id, _, _) :-
+        write('Lamp:'), write(Id), write(' '), writeln(1).
+
+
+% NG.
+%dly(Id, In, Out) :-
+%        last_value([Id, Out]),
+%        retract(last_value([Id, _])),
+%        (var(In) ; 
+%         assert(last_value([Id, In]))).
+%dly(Id, In, _) :- !,
+%        assert(last_value([Id, In])).
+%
+
+
+%%
+%% Zuseの回路 (dual-rail-carry full adder)
+%%
+fa(InA, InB, InC, InNotC, OutS, OutC, OutNotC) :-
+       rly(InA, 0, OutNotC, I, H),
+       rly(InA, 0, InNotC,  K, J),
+       rly(InA, 0, InC,     J, K),
+       rly(InA, 0, OutC,    N, L),
+       rly(InB, 0, InNotC,  H, I),
+       rly(InB, 0, OutS,    J, K), 
+       rly(InB, 0, 1,       I, L),
+       rly(InB, 0, InC,     L, N).
+
+
+add(A0, A1, A2, A3, B0, B1, B2, B3) :-
+        fa(A0, B0,  0,   1, S0, C1, NC1), lmp('S0', S0, 0),
+        fa(A1, B1, C1, NC1, S1, C2, NC2), lmp('S1', S1, 0),
+        fa(A2, B2, C2, NC2, S2, C3, NC3), lmp('S2', S2, 0),
+        fa(A3, B3, C3, NC3, S3, C4, NC4), lmp('S3', S3, 0),
+        lmp('C4', C4, 0), nl.
+
+
+%%%%%
+
+
+not(X, _) :-
+        var(X), !.
+not(1, 0 ).
+not(0, 1 ).
+
+
+fa(InA, InB, InC) :-
+        not(InC, InNotC),
+        fa(InA, InB, InC, InNotC, OutS, OutC, OutNotC),
+        lmp(' S', OutS, 0),
+        lmp(' C', OutC, 0),
+        lmp('~C', OutNotC, 0),
+        nl.
+
+
+test :-
+        fa(0, 0, 0),
+        fa(0, 0, 1),
+        fa(0, 1, 0),
+        fa(0, 1, 1),
+        fa(1, 0, 0),
+        fa(1, 0, 1),
+        fa(1, 1, 0),
+        fa(1, 1, 1).
+
+
+go0 :-
+       add(0, 1, 0, 1,  1, 0, 1, 0),
+       add(1, 1, 1, 1,  1, 1, 1, 1),
+       add(1, 0, 0, 0,  1, 1, 1, 1).
+
+go :-
+       add(_, 1, _, 1,  1, _, 1, _),
+       add(1, 1, 1, 1,  1, 1, 1, 1),
+       add(1, _, _, _,  1, 1, 1, 1).
+
+
+%%% END.

@@ -1,0 +1,63 @@
+% NKS
+% S.Wolfram "A New Kind of Science", p.98, p.896
+% Register Machine
+%
+
+rmstep(Prog, {N, List}, {N2, List2}) :-
+        nth(N, Prog, P),
+        rmexec(P, {N, List}, {N2, List2}).
+
+rmexec(i(Reg), {N, List}, {N2, List2}) :-
+        maplistat(inc, List, List2, Reg),
+        N2 is N + 1.
+rmexec(d(Reg, M), {N, List}, {N2, List2}) :-
+        nth(Reg, List, R),
+        maplistat(dec, List, List2, Reg),
+        nth(Reg, List2, R2),
+        (R = R2 ->                          % 減算が、
+         N2 is N + 1;                       % できなかったので、ジャンプしない。
+         N2 = M).                           % できたので、ジャンプする。
+
+inc(N, N2) :-
+        N2 is N + 1.
+dec(0, 0) :- !.
+dec(N, N2) :- !,
+        N2 is N - 1.
+
+maplistat(Pred, [E | List], [E2 | List], 1) :- !,
+        call(Pred, E, E2).
+maplistat(Pred, [E | List], [E | List2], R) :-
+        R2 is R - 1,
+        maplistat(Pred, List, List2, R2).
+
+nestlist(Pred, X, [], 0) :- !.
+nestlist(Pred, X, [X2 | List], T) :-
+        call(Pred, X, X2),
+        T2 is T - 1,
+        nestlist(Pred, X2, List, T2).
+
+/*
+rmevolvelist(_, _, 0) :- !.
+rmevolvelist(Prog, {N, List}, T) :-
+        T2 is T - 1,
+        rmstep(Prog, {N, List}, {N2, List2}),
+        nth(N, Prog, P), writeln((P, {N2, List2})),
+        rmevolvelist(Prog, {N2, List2}, T2).
+rm2(Prog) :-
+        rmevolvelist(Prog, {1, [0, 0]}, 100).
+*/
+
+rm(Prog) :-
+        nestlist(rmstep(Prog), {1, [0, 0]}, List, 100),
+        writeln(List).
+
+nth(N, L, E) :-
+        N2 is N - 1,
+        nth0(N2, L, E).
+
+go :- rm([i(1), d(1, 1)]).
+go1 :- rm([i(2), i(1), d(1, 1)]).
+go2 :- rm([i(1), i(2), i(1), d(1, 1)]).
+go3 :- rm([i(1), d(2, 1), i(2), d(1, 3), d(2, 1)]).
+
+% END

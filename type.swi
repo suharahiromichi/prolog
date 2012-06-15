@@ -1,0 +1,38 @@
+%%
+%% Prolog の型推論
+%%
+%% Skolem関数の型推論をおこなう。
+%%
+
+typedef(a, int).
+typedef(f, int - float).
+typedef(g, (float, int - double)).
+typedef(g, (float, int) - float).
+
+type(E, TYPE) :-
+        freeze(E, type_check(E, TYPE)).
+
+type_check(V, _) :-
+        var(V), !.
+type_check(E, TYPE) :-
+        atom(E), !,
+        typedef(E, TYPE).
+type_check(E, TYPE) :-
+        E =.. [Func|Args], !,
+        maplist(type_check, Args, Type_List),
+        list_to_comma(Type_List, Types),
+        typedef(Func, Types - TYPE).
+
+list_to_comma([A|L], (A, L2)) :-
+        L \== [], !,
+        list_to_comma(L, L2).
+list_to_comma([A], A).
+
+%% test.
+
+go :-
+        type(EXP, TYPE),
+        EXP = g(f(a), a),
+        write(TYPE), nl.
+
+%% END

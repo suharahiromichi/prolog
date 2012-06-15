@@ -1,0 +1,48 @@
+%%
+%% Iota
+%%
+%% http://esolangs.org/wiki/Iota
+%% http://slashdot.jp/comments.pl?sid=430656&cid=1472952
+%%
+%% % pl -f iota.swi
+%% ?- iota("*i*i*ii", E), eval(E:1:0, Result).
+%% iota: Lambda式に変換する。
+%% eval: Lambda式を評価する。引数1:True, 0:False。
+%%
+
+?- ['lambda.swi'].
+
+iota(S, X) :-
+        iota(S, [], X).
+
+iota([42|L],  L2, X:Y) :- !,                % "*"
+        iota(L, L1, X),
+        iota(L1, L2, Y).
+iota([105|L], L,  X) :- !,                  % "i"
+        X = lambda(c, c:lambda(x, lambda(y, lambda(z, x:z:(y:z)))):(lambda(x, lambda(y, x)))).
+iota([_|L], L1,  X) :- !,                   % その他の文字、コメント
+        iota(L, L1, X).
+
+%%%%%%%%%%%%%%%%%
+%% Sample Code
+%%%%%%%%%%%%%%%%%
+go :-
+        iota("*i*i*ii", X1),                % TRUE
+        eval(X1:1:0, Y1),
+        write('result is ...'), write(Y1), nl. % 1
+go0 :-
+        iota("**i*i*ii*ii", X2),            % FALSE
+        eval(X2:1:0, Y2),
+        write('result is ...'), write(Y2), nl. % 0
+go10 :-
+        iota("* ***i*i*i*ii***i*i*i*ii*ii***i*i*i*ii**i*i*ii*i*i*ii**i*i*ii*ii**i*i*ii*i*i*ii
+                *i*i*ii", X4),              % *(NOT, TRUE)
+        eval(X4:1:0, Y4),
+        write('result is ...'), write(Y4), nl. % 0
+go11 :-
+        iota("* ***i*i*i*ii***i*i*i*ii*ii***i*i*i*ii**i*i*ii*i*i*ii**i*i*ii*ii**i*i*ii*i*i*ii
+            **i*i*ii*ii", X4),              % *(NOT, FALSE)
+        eval(X4:1:0, Y4),
+        write('result is ...'), write(Y4), nl. % 1
+
+%% END

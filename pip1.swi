@@ -1,0 +1,64 @@
+%%
+%% Prolog in Prolog
+%%
+%% 命題論理限定
+%% 全解探索をおこなう。cutとfailも使用できる。
+%%
+
+%% Test Code.
+
+go :-
+        resolve(a).
+
+a :- b1, b2, b3.
+a :- c1, !, c2.
+a :- d.
+b1.
+b2.
+b3.
+%c1 :- fail.
+c1.
+%c2 :- fail.
+c2 :- e.
+d.
+e :- f.
+f :- fail.
+g :- h.
+h.
+
+%% resolver
+
+resolve(X) :-
+        resolve(X, R),
+        write(R), nl.
+
+resolve(true, true) :- !.
+resolve(false, false) :- !.
+resolve(fail, false) :- !.
+resolve(Goal, R2) :-
+        write(resolve(Goal)), nl,
+        findall(Body, clause(Goal, Body), T),
+        (T = [] -
+         R2 = false, true;
+         [New|T1] = T, resolve_body(New, T1, R2)), !.
+
+resolve_body((!, Body), _, R2) :- !,
+        resolve_body(Body, [], R2).         % オルタネートを消去する。
+resolve_body(!, _, true) :- !.              % bodyの最後の述語である。
+
+resolve_body((Goal, Body), T, R2) :- !,
+        resolve(Goal, R),
+        (R = true -
+         resolve_body(Body, T, R2);
+         R2 = false).
+                                            % ひとつは成功したのでtureを返す。
+resolve_body(Goal, [New|T], R2) :-          % bodyの最後の述語である。
+        resolve(Goal, R),                   % その結果のよらず、
+        resolve_body(New, T, R1),           % 次の節を実行する。
+        (R = true -
+         R2 = true;
+         R2 = R1).
+resolve_body(Goal, [], R) :-                % 次の節がない。
+        resolve(Goal, R).
+
+% END

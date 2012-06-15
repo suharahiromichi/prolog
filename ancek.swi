@@ -1,0 +1,122 @@
+%%
+%% A-normalization CaEK Machine
+%%
+%% The Essence of Compiling with Continuations (1993)  (Make Corrections)
+%% Cormac Flanagan, Amr Sabry, Bruce F. Duba, Matthias Felleisen
+%%
+%% Figure 8. を Prologに書き換えたもの。
+%%
+
+?- op(600, yfx, :).
+
+%%
+%% テストケース
+%%
+
+go :-
+        (true -
+         trace(eval);
+         true),
+        aneval(let(a=3, let(b=lambda(x, inc:x), b:a)), _),
+        aneval(let(a=1, inc:a), _),
+        aneval(inc:1, _),
+        true.
+
+%%
+%% main
+%%
+
+aneval(C, R) :-
+        empty_assoc(E),
+        eval(C, E, ar(x, x, E, stop), R), !, % 開始条件
+        (true -
+         write(C), nl,
+         write(R), nl,
+         nl;
+         true).
+
+%% 終了条件
+eval(V, E, stop, R) :-
+        gamma(V, E, V1),
+        R = V1.
+
+%%
+%% eval(C, E, K, R)
+%% C: A-normalized Code
+%% E: Envionment   環境、assoc
+%% K: Continuation 継続
+%% R: 結果
+%%
+
+eval(if0(V, MT, ME), E, K, R) :- !,
+        gamma(V, E, V1),                    % V1 = γ(V, E)
+        ((V1 = [] ; V1 = nil ; V1 = false ; V1 = 0 ) -
+         eval(MT, E, K, R);
+         eval(ME, E, K, R)).
+
+eval(O:VA, E, ar(X, M1, E1, K), R) :-
+        is_primitive_op(O), !,
+        gamma(VA, E, VA1),                  % VA1 = γ(VA, E)
+        delta(O, VA1, VA2),                 % VA2 = δ(O, VA1)
+        newenv(X, E1, VA2, E2),             % E2 = E1[X:=VA2]
+        eval(M1, E2, K, R).
+
+eval(let(Y=O:VA, M), E, K, R) :-
+        is_primitive_op(O), !,
+        gamma(VA, E, VA1),                  % VA1 = γ(VA, E)
+        delta(O, VA1, VA2),                 % VA2 = δ(O, VA1)
+        newenv(Y, E, VA2, E1),              % E1 = E[Y:=VA1]
+        eval(M, E1, K, R).
+
+eval(V:VA, E, K, R) :-
+        gamma(V, E, V1),                    % V1 = γ(V, E)
+        V1 = cl(X, M1, E1),
+        gamma(VA, E, VA1),                  % VA1 = γ(VA, E)
+        newenv(X, E1, VA1, E2),             % E2 = E1[X:=VA1]
+        eval(M1, E2, K, R).
+
+eval(let(Y=V:VA, M), E, K, R) :-
+        gamma(V, E, V1),                    % V1 = γ(V, E)
+        V1 = cl(X, M1, E1),
+        gamma(VA, E, VA1),                  % VA1 = γ(VA, E)
+        newenv(X, E1, VA1, E2),             % E2 = E1[X:=VA1]
+        eval(M1, E2, ar(Y, M, E, K), R).
+
+eval(let(Y=V, M), E, K, R) :- !,
+        gamma(V, E, V1),                    % V1 = γ(V, E)
+        newenv(Y, E, V1, E1),               % E1 = E[Y:=V1]
+        eval(M, E1, K, R).
+
+eval(V, E, ar(X, M1, E1, K1), R) :- !,
+        gamma(V, E, V1),                    % V1 = γ(V, E)
+        newenv(X, E1, V1, E2),              % E2 = E1[X:=V1]
+        eval(M1, E2, K1, R).
+
+
+gamma([], _, []).
+gamma(nil, _, nil).
+gamma(true, _, true).
+gamma(false, _, false).
+gamma(A, _, A) :-
+        number(A), !.
+%% VS = γ(V, E)
+gamma(lambda(X, M), E, cl(X, M, E)).
+gamma(V, E, VS) :- !,
+        get_assoc(V, E, VS);
+        VS = V.
+
+%% ES = E[X:=V]
+newenv(X, E, V, ES) :-
+        put_assoc(X, E, V, ES).
+
+is_primitive_op(inc).
+is_primitive_op(dec).
+
+delta(inc, V, R) :-
+        number(V),
+        R is V + 1.
+delta(dec, V, R) :-
+        number(V),
+        R is V - 1.
+
+%% END

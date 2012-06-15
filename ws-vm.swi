@@ -1,0 +1,117 @@
+%%
+%% White Space VM
+%%
+
+vm(E) :-
+        S = [],
+        C = [],
+        empty_assoc(H),
+        empty_assoc(L),
+        vm_labl(E, L, L1),
+        vm_loop(E, S, C, H, L1).
+
+vm_labl([], L, L).
+vm_labl([label(A)|E], L, L2) :- !,
+        put_assoc(A, L, E, L1),
+        (opt_trace(true) -
+         write(label(A));
+         true),
+        vm_labl(E, L1, L2).
+vm_labl([_|E], L, L2) :-
+        vm_labl(E, L, L2).
+
+vm_loop([], S, C, H, L) :-
+        nl,
+        (false -
+         write('S '), write(S), nl,
+         write('C '), write(C), nl,
+         write('H '), write(H), nl,
+         write('L '), write(L), nl;
+         true).
+vm_loop(E, S, C, H, L) :- !,
+        (opt_trace(true) -
+         E = [T|_], write(T), nl;           % trace
+         true),
+        eval(E, E1, S, S1, C, C1, H, H1, L, L1),
+        vm_loop(E1, S1, C1, H1, L1).
+
+%% eval(E, E2, S, S2, C, C2, H, H2, L, L2)
+%% E,E2 : インストラクション・リスト
+%% S,S2 : データ・スタック
+%% C,C2 : コール・スタック
+%% H,H2 : ヒープ
+%% L,L2 : ロケーション・テーブル
+
+eval([push(N) |E],  E,  S, [N|S],         C, C,     H, H,  L, L).
+eval([dup     |E],  E,  [X|S], [X, X|S],  C, C,     H, H,  L, L).
+eval([ref(N)  |E],  E,  S, [X|S],         C, C,     H, H,  L, L) :- % copy
+        nth0(N, S, X).
+eval([swap    |E],  E,  [X,Y|S], [Y,X|S], C, C,     H, H,  L, L).
+eval([discard |E],  E,  [_|S], S,         C, C,     H, H,  L, L).
+eval([slide(N)|E],  E,  [X|S], [X|S2],    C, C,     H, H,  L, L) :- % keep the top item
+        drop(N, S, S2).
+
+eval([plus    |E],  E,  [X,Y|S], [Z|S],   C, C,     H, H,  L, L) :-
+        Z is Y + X.
+eval([minus   |E],  E,  [X,Y|S], [Z|S],   C, C,     H, H,  L, L) :-
+        Z is Y - X.
+eval([times   |E],  E,  [X,Y|S], [Z|S],   C, C,     H, H,  L, L) :-
+        Z is Y * X.
+eval([divide  |E],  E,  [X,Y|S], [Z|S],   C, C,     H, H,  L, L) :-
+        Z is Y / X.
+eval([modulo  |E],  E,  [X,Y|S], [Z|S],   C, C,     H, H,  L, L) :-
+        Z is Y mod X.
+
+eval([store   |E],  E,  [N, Loc|S], S,    C, C,     H, H2, L, L) :-
+        put_assoc(Loc, H, N, H2),
+        (opt_heap(true) -
+         write(' store: Loc: '), write(Loc),
+         write('      value: '), write(N), nl;
+         true).
+eval([retrieve|E],  E,  [Loc|S], [X|S],   C, C,     H, H,  L, L) :-
+        (get_assoc(Loc, H, X); X = 0),
+        (opt_heap(true) -
+         write(' retrieve: Loc: '), write(Loc),
+         write('         value: '), write(X), nl;
+         true).
+
+eval([label(_)|E],  E,  S, S,             C, C,     H, H,  L, L).
+%%       put_assoc(A, L, E, L2).
+eval([call(A) |E],  E2, S, S,             C, [E|C], H, H,  L, L) :-
+        (get_assoc(A, L, E2); write('label not found.'), nl).
+eval([jump(A) |_],  E2, S, S,             C, C,     H, H,  L, L) :-
+        (get_assoc(A, L, E2); write('label not found.'), nl).
+eval([jz(A)   |_],  E2, [X|S], S,         C, C,     H, H,  L, L) :- X = 0, !,
+        (get_assoc(A, L, E2); write('label not found.'), nl).
+eval([jz(_)   |E],  E,  [_|S], S,         C, C,     H, H,  L, L) :- !.
+eval([jn(A)   |_],  E2, [X|S], S,         C, C,     H, H,  L, L) :- X  0, !,
+        (get_assoc(A, L, E2); write('label not found.'), nl).
+eval([jn(_)   |E],  E,  [_|S], S,         C, C,     H, H,  L, L) :- !.
+eval([return  |_],  E2, S,     S,         [E2|C], C, H, H, L, L). 
+eval([end     |_],  [], S,     S,         C, C,     H, H,  L, L).
+
+eval([putchar |E],  E,  [X|S], S,         C, C,     H, H,  L, L) :-
+        put_code(X).                        % put an ascii code.
+eval([putnum  |E],  E,  [X|S], S,         C, C,     H, H,  L, L) :-
+        write(X).                           % writa a number.
+eval([readchar|E],  E,  [Loc|S], S,       C, C,     H, H2, L, L) :-
+        get_code(X),                        % get an ascii code.
+        put_assoc(Loc, H, X, H2),
+        (opt_heap(true) -
+         write(' store: Loc: '), write(Loc),
+         write('      value: '), write(X), nl;
+         true).
+eval([readnum |E],  E,  [Loc|S], S,       C, C,     H, H2, L, L) :-
+        read(X), (number(X); X = 0),        % read a atom.
+        put_assoc(Loc, H, X, H2),       
+        (opt_heap(true) -
+         write(' store: Loc: '), write(Loc),
+         write('      value: '), write(X), nl;
+         true).
+
+drop(0, L, L).
+drop(N, [_|L], L2) :-
+        N1 is N - 1,
+        drop(N1, L, L2).
+
+%% END

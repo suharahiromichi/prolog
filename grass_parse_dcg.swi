@@ -1,0 +1,60 @@
+%%
+%% Grass言語パーサ GCD文法
+%%
+
+%% 2010/03/30
+
+%% サンプルは、以下のページから。
+%% http://www.ueda.info.waseda.ac.jp/~ohtani/wiki/index.php?Grass
+
+prog([Abs]) --
+        abs(Abs).
+prog([Abs|Prog]) --
+        abs(Abs), v, progs(Prog).
+
+progs([Abs]) --
+        abs(Abs).
+progs(Apps) --
+        apps(Apps).
+progs([Abs|Prog]) --
+        abs(Abs), v, progs(Prog).
+progs(Prog2) --
+        apps(Apps), v, progs(Prog), {append(Apps, Prog, Prog2)}.
+
+app(app(NW, Nw)) --
+        ww(NW), w(Nw).
+
+abs(abs(Nw, Apps)) --
+        w(Nw), apps(Apps).
+
+apps([App]) --
+        app(App).
+apps([App|Apps]) --
+        app(App), apps(Apps).
+
+w(N2) --
+        ("w"; "ｗ"), w(N), {N2 is N + 1}.
+w(1) --
+        ("w"; "ｗ").                        % 119, 65367
+
+ww(N2) --
+        ("W"; "Ｗ"), ww(N), {N2 is N + 1}.
+ww(1) --
+        ("W"; "Ｗ").                        % 87, 65335
+
+v --
+        ("v"; "ｖ").                        % 118, 65366
+
+go1(Prog) :-
+        prog(Parse, Prog, []),
+        writeln(Parse).
+
+go :-
+        go1("wwwWWWwWWWwwWWw"),
+        go1("wWWwwww"),
+        go1("ｗＷＷｗｗｗｗＷＷｗｗ"),
+        go1("wWWwvWwwww"),
+        go1("wwWWwWWWwvWwwwWwwwwwWWWWw"),
+        go1("wwWWwvwwwwWWWwwWwwWWWWWWwwwwWwwvwWWwwwWwwwwWwwwwwwWwwwwwwwww").
+
+%% END.

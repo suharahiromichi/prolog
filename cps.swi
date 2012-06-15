@@ -1,0 +1,121 @@
+%% http://practical-scheme.net/wiliki/wiliki.cgi?Scheme%3A%E4%BD%BF%E3%81%84%E3%81%9F%E3%81%84%E4%BA%BA%E3%81%AE%E3%81%9F%E3%82%81%E3%81%AE%E7%B6%99%E7%B6%9A%E5%85%A5%E9%96%80
+%%
+%% 継続渡し形式の階乗の定義
+%%
+%% (define (fact/cps n cont)
+%%  (if (= n 0)
+%%      (cont 1)
+%%      (fact/cps (- n 1) (lambda (a) (cont (* n a))))))
+%%
+%% (fact/cps 10 (lambda (a) (* 2 a)))
+%%
+
+
+fact_cps(0, CONT, R) :- !,
+        call(CONT, 1, R).
+
+
+fact_cps(N, CONT, R) :-
+        N1 is N - 1,
+        fact_cps(N1, p(CONT, N), R).
+
+
+p(CONT, N, A, R) :-
+        R1 is N * A,
+        call(CONT, R1, R).
+
+
+id(A, A).
+
+
+go1 :-
+        fact_cps(5, id, R),
+        write(R),
+        nl.
+
+
+%%
+%% 継続渡し形式の除算
+%%
+%% (define (divide/cps num den pass fail)
+%%   (if (= den 0)
+%%       (fail num den pass fail)
+%%       (pass (/ num den))))
+%%
+%%
+%% 非零の分母要求する除算
+%% (divide/cps 10 0
+%%             (lambda (a) (format #t "answer is ~a~%" a))
+%%             (lambda (n d p f)
+%%               (format #t "> ")
+%%               (flush)
+%%               (divide/cps n (read) p f)))
+%%
+%%
+
+
+divide_cps(N, 0, FAIL, R) :- !,
+        call(FAIL, N, D, R),
+        (var(R) ->
+         divide_cps(N, D, FAIL, R);
+         true).
+
+
+divide_cps(N, D, _, R) :-
+        R is N / D.
+
+
+divide_err(_, _, 0) :-
+        write('devide by zero, ').
+divide_read(_, D, _) :-
+        read(D).
+
+
+go2 :-
+        divide_cps(10, 3, id, R1),
+        write(R1), nl,
+        divide_cps(10, 0, divide_err, R2),
+        write(R2), nl,
+        divide_cps(10, 0, divide_read, R3),
+        write(R3), nl.
+
+
+
+
+%%
+%% http://d.hatena.ne.jp/nozom/20061014/1160814110
+%%
+%%(define (fib_cps n k)
+%%  (if (or (= n 1) (= n 2))
+%%      (k 1)
+%%      (fib_cps (- n 1)
+%%               (lambda (v1)
+%%                 (fib_cps (- n 2)
+%%                          (lambda (v2)
+%%                            (k (+ v1 v2))))))))
+%%
+%%
+
+
+fib_cps(1, K, R) :- !,
+        call(K, 1, R).
+fib_cps(2, K, R) :- !,
+        call(K, 1, R).
+fib_cps(N, K, R) :-
+        N1 is N - 1,
+        fib_cps(N1, q1(K, N), R).
+ 
+q1(K, N, V, R) :-
+        N2 is N - 2,
+        fib_cps(N2, q2(K, V), R).
+q2(K, N, V, R) :-
+        V1 is N + V,
+        call(K, V1, R).
+ 
+go :-
+        fib_cps(10, id, R),
+        write(R),
+        nl.
+
+
+%% END

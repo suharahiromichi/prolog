@@ -1,0 +1,48 @@
+%%
+%% 最内側評価のlambda簡約系
+%%
+
+?- op(600, yfx, :).
+
+eval(E, E2) :-
+        empty_assoc(V),
+        eval(E, V, E2).
+
+eval(lambda(X, B), E, env(lambda(X, B), E)) :- !.
+eval(env(lambda(X, B), E), _, env(lambda(X, B), E)) :- !.
+eval(A, _, A) :- number(A), !.
+eval(A, E, A1) :- atom(A),
+        get_assoc(A, E, A1), !.
+eval(A, _, A) :- atom(A), !.
+eval(F:A, E, A2) :-
+        eval(F, E, F1),
+        eval(A, E, A1),
+        apply(F1, A1, E, A2).
+
+apply(lambda(X, B), A, E, A2) :-
+        put_assoc(X, E, A, E1),
+        eval(B, E1, A2).
+apply(env(lambda(X, B), E), A, _, A2) :-
+        put_assoc(X, E, A, E1),
+        eval(B, E1, A2).
+apply(F, A, E, F:A) :- atom(F), !.
+
+
+eval_test :-
+%       trace(eval),
+        T = lambda(a, lambda(b, a)),
+        F = lambda(a, lambda(b, b)),
+        AND = lambda(a, lambda(b, a:b:F)),
+        OR = lambda(a, lambda(b, a:T:b)),
+        NOT = lambda(a, a:F:T),
+        eval(OR:T:T:1:0, X1),
+        write('result is ...'), write(X1), nl,
+        eval(OR:T:F:1:0, X2),
+        write('result is ...'), write(X2), nl,
+        eval(OR:F:T:1:0, X3),
+        write('result is ...'), write(X3), nl,
+        eval(OR:F:F:1:0, X4),
+        write('result is ...'), write(X4), nl,
+        true.
+
+%% END

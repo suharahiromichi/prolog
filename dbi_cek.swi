@@ -1,0 +1,63 @@
+%%
+%% de Bruijn Index CEK Macchine
+%%
+%% BRICS : A Functional Correspondence between Evaluators and Abstract Machines
+%% p.9
+%%
+%% 2010/03/25
+%%
+
+?- op(600, yfx, :).
+
+%%
+%% テストケース
+%%
+
+go :-
+        I = lambda(1),
+        K = lambda(lambda(2)),
+        S = lambda(lambda(lambda((3:1) : (2:1)))),
+        B = lambda(lambda(lambda(3:(2:1)))),
+        C = lambda(lambda(lambda((3:1):2))),
+        Y = lambda( lambda(2:(1:1)) : lambda(2:(1:1)) ),
+%       eval(S:0, R),
+%       eval((S:K:K):a, R),                 % R = a
+        eval((S:K:K):1, R),                 % R = 1
+        %% 自由変数は「1」でもうまくいく。
+        writeln(R).
+
+%%% evaluator
+%%
+
+eval(Prog, Result) :-
+        eval_iter(Prog,                     % C
+                  [],                       % E
+                  [],                       % D
+                  Result), !.
+
+eval_iter([], [F], [], F).
+eval_iter(C, E, K, Result) :-
+        reduce(C, E, K, C2, E2, K2),
+        eval_iter(C2, E2, K2, Result).
+
+%%% reduction rule
+%% reduce(C, E, K, C2, E2, K2)
+%% C, C2: Code
+%% E, E2: 環境
+%% K, K2: Dump
+       
+reduce(lambda(T), E,              [],
+       [],        [cl(T, E)],     []).
+reduce(lambda(T), E,              [cl(T2, E2)|S],
+       T,         [cl(T2, E2)|E], S).
+reduce(T0:T1,     E,              S,
+       T0,        E,              [cl(T1, E)|S]).
+reduce(N,         E,              S,
+       T,         E2,             S) :-
+        atomic(N),
+        nth1(N, E, cl(T, E2)).
+reduce(N,         E,              S,
+       [],        [cl(N, E)|E],   S) :-
+        atomic(N).
+
+%% END.

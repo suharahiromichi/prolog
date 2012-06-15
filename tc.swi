@@ -1,0 +1,58 @@
+%%
+%% Tiny Toy Compiler
+%%
+
+%%
+%% pl -f tc.swi  test.t
+%% ilasm test.il
+%% mono _test.exe
+%%
+
+compile :-
+        read(EXP),
+        tell('_test.il'),
+        header,
+        tc(EXP),
+        footer,
+        told.
+
+tc(EXP + TERM) :-
+        tc(EXP), tc(TERM), {add}.
+tc(EXP - TERM) :-
+        tc(EXP), tc(TERM), {sub}.
+tc(TERM * FACTOR) :-
+        tc(TERM), tc(FACTOR), {mul}.
+tc(TERM / FACTOR) :-
+        tc(TERM), tc(FACTOR), {'div.un'}.
+tc(NUMBER) :-
+        number(NUMBER),
+        {'ldc.i4', NUMBER}.
+
+{Ins, Opr} :- !,
+        write('    '), write(Ins), write(' '), write(Opr), nl.
+{Ins} :- !,
+        write('    '), write(Ins), nl.
+
+
+header :-
+        writeln('.assembly extern mscorlib {}'),
+        writeln('.assembly Test'),
+        writeln('{'),
+writeln('    .ver 1:0:1:0' ),
+        writeln('}'),
+        writeln('.module test.exe'),
+        writeln('.method static void main() cil managed'),
+        writeln('{'),
+        writeln('    .maxstack 2'),
+writeln('    .entrypoint').
+
+footer :-
+        writeln('    call void [mscorlib]System.Console::Write (int32)'),
+        writeln('    ret'),
+        writeln('}').
+
+%%
+
+?- compile, !.
+
+%% END

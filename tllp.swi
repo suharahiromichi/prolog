@@ -1,0 +1,436 @@
+/*
+
+
+  TLLP interpreter in Prolog
+
+
+論文「直観主義時相論理における論理プログラミングについて」
+
+
+の附録のプログラムをexamplesを実行できるように、修正したもの。
+
+
+*/
+
+
+
+
+
+
+:- op(1060, xfy, (&)).
+
+
+:- op( 950, xfy, [-<>, =>]).
+
+
+:- op( 900, fy, [!, @, #]).
+
+
+
+
+
+
+prove(G) :-
+
+
+        prove(G, 0, [], []).
+
+
+
+
+
+
+prove(write(X), T, I, I) :- !,              % new
+
+
+        write(X).
+
+
+prove(nl, T, I, I) :- !,                    % new
+
+
+        nl.
+
+
+prove(true, T, I, I) :- !.
+
+
+prove(top, T, I, O) :- !,
+
+
+        subcontext(T, O, I).
+
+
+prove((G1, G2), T, I, O) :- !,
+
+
+        prove(G1, T, I, M),
+
+
+        prove(G2, T, M, O).
+
+
+prove((G1 & G2), T, I, O) :- !,
+
+
+        prove(G1, T, I, O),
+
+
+        prove(G2, T, I, O).
+
+
+prove((G1 ; G2), T, I, O) :- !,
+
+
+        (prove(G1, T, I, O) ;
+
+
+         prove(G2, T, I, O)).
+
+
+
+
+
+
+prove(((R , S) -<> G), T, I, O) :- !,       % new
+
+
+        count_next(R, N, R1),
+
+
+        T1 is T + N,
+
+
+        prove((S -<> G), T, [(R1,T1)|I], [1|O]).
+
+
+
+
+
+
+prove((R -<> G), T, I, O) :- !,
+
+
+        count_next(R, N, R1),
+
+
+        T1 is T + N,
+
+
+        prove(G, T, [(R1,T1)|I], [1|O]).
+
+
+prove((S => G), T, I, O) :- !,
+
+
+        prove(G, T, [(!S,0)|I], [(!S,0)|O]).
+
+
+prove(!G, T, I, I) :- !,
+
+
+        prove(G, T, I, I).
+
+
+prove(@G, T, I, O) :- !,
+
+
+        T1 is T + 1,
+
+
+        prove(G, T1, I, O).
+
+
+prove(A, T, I, O) :-
+
+
+        pick(T, I, O, A).
+
+
+prove(A, T, I, O) :-
+
+
+        pick(T, I, M, (G -<> A)),
+
+
+        prove(G, T, M, O).
+
+
+
+
+
+
+count_next(@R, N, R1) :- !,
+
+
+        count_next(R, N1, R1),
+
+
+        N is N1 + 1.
+
+
+count_next(R, 0, R).
+
+
+
+
+
+
+pick(T, I, O, S) :-
+
+
+        pick1(T, I, O, S).
+
+
+pick(T, I, I, S) :-
+
+
+        rule(S).
+
+
+pick(T, I, I, (G -<> A)) :-
+
+
+        rule((A :- G)).
+
+
+
+
+
+
+pick1(T, [(!S,0)|I], [(!S,0)|I], S).
+
+
+pick1(T, [(#R,T0)|I], [1|I], S) :-
+
+
+        T >= T0,
+
+
+        select(R, S).
+
+
+pick1(T, [(R,T)|I], [1|I], S) :-
+
+
+        \+(R = (!_)), \+(R = (#_)),
+
+
+        select(R, S).
+
+
+pick1(T, [R|I], [R|O], S) :-
+
+
+        pick1(T, I, O, S).
+
+
+
+
+
+
+select((R1 & R2), R) :- !,
+
+
+        (select(R1, R) ; select(R2, R)).
+
+
+select(R, R).
+
+
+
+
+
+
+subcontext(T, [], []).
+
+
+subcontext(T, [(!S,0)|O], [(!S,0)|I]) :-
+
+
+        subcontext(T, O, I).
+
+
+subcontext(T, [R1|O], [(#R,T0)|I]) :-
+
+
+        (R1 = (#R,T0) ; R1 = 1),
+
+
+        subcontext(T, O, I).
+
+
+subcontext(T, [R1|O], [(R,T0)|I]) :-
+
+
+        \+(R = (!_)), \+(R = (#_)),
+
+
+        T0 >= T,
+
+
+        (R1 = (R,T0) ; R1 = 1),
+
+
+        subcontext(T, O, I).
+
+
+
+
+
+
+%% END
+
+
+
+
+
+
+%% Examples
+
+
+
+
+
+
+rule((main :-
+
+
+test(N),
+
+
+fail)).
+
+
+rule((main)).                               % 先にこれが成功する。
+
+
+                                            % 結果の出力順が違うのは？
+
+
+
+
+
+
+rule((test(1) :-
+
+
+     ((p(1), p(2)) -<> (p(X), p(Y))),
+
+
+      write([X,Y]), nl)).
+
+
+rule((test(2) :-
+
+
+     ((p(1), @p(2)) -<> (@p(X), p(Y))),
+
+
+      write([X,Y]), nl)).
+
+
+rule((test(3) :-
+
+
+     ((p(1), #p(2)) -<> (@ @p(X), p(Y))),
+
+
+      write([X,Y]), nl)).
+
+
+rule((test(4) :-
+
+
+     (p(1) => (p(X), @p(Y))),
+
+
+      write([X,Y]), nl)).
+
+
+rule((test(5) :-
+
+
+     (@ #p(1) -<> @ @((p(X) & p(Y)))),
+
+
+      write([X,Y]), nl)).
+
+
+rule((test(6) :-
+
+
+     (((p(1)&p(2)), @((p(3)&p(4)))) -<> (p(X), @p(Y))),
+
+
+      write([X,Y]), nl)).
+
+
+rule((test(7) :-
+
+
+     (p(1) => p(2) -<> (@p(X), top)),
+
+
+      write([X]), nl)).
+
+
+
+
+
+
+go :-
+
+
+        prove(main).
+
+
+
+
+
+
+%% Path
+
+
+
+
+
+
+% ?- prove(goal(G)).
+
+
+% G = [a, c, b, d] ;
+
+
+% false.
+
+
+
+
+
+
+
+
+
+
+rule((p(V,V,[V]) :- v(V))).
+
+
+rule((p(U,V,[U|P]) :- v(U), e(U,W), @p(W,V,P))).
+
+
+rule((e(U,V))).
+
+
+
+
+
+
+rule((goal(P) :- #v(a) -<> @ @v(b) -<> @ #v(c) -<> #v(d) -<> p(a,d,P) )).
+
+
+
+
+
+
+%% END
