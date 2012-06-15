@@ -1,0 +1,52 @@
+﻿(CS) A Linear Logic Programming Language
+2010/02/22
+直観主義線形論理プログラミング言語
+神戸大学の LLP (llp051.tar.gz) を SWI-Prologで動かすためのパッチ
+http://bach.istc.kobe-u.ac.jp/llp/
+
+/usr/local/ に置く。他の場所ならば、環境変数 LLPDIR を設定する。
+/usr/local/llp/bin/ にパスを通す。
+
+diff -W160 -r llp051/Makefile /usr/local/llp/Makefile
+27a28,30
+» #### SWI-Prolog
+» PROLOG = pl
+» PSYSTEM = swi-prolog
+29,30c32,33
+« PROLOG = sicstus
+« PSYSTEM = sicstus
+---
+» # PROLOG = sicstus
+» # PSYSTEM = sicstus
+diff -W160 -r llp051/bin/llp /usr/local/llp/bin/llp
+3c3,4
+« if (! $?LLPDIR) set LLPDIR = `dirname $0`/..
+---
+» #if (! $?LLPDIR) set LLPDIR = `dirname $0`/..
+» if (! $?LLPDIR) set LLPDIR = /usr/local/llp
+diff -W160 -r llp051/compiler/Makefile /usr/local/llp/compiler/Makefile
+5,6d4
+« PROLOG = prolog
+« PSYSTEM = sicstus
+diff -W160 -r llp051/compiler/comp_pl /usr/local/llp/compiler/comp_pl
+23,24c23,24
+« set arg1="'"'$1'"'"
+« set arg2="'"'$2'"'"
+---
+» set arg1="\'"'$1'"\'"
+» set arg2="\'"'$2'"\'"
+29c29,35
+« if ($PSYSTEM == "sicstus") then
+---
+»
+» if ($PSYSTEM == "swi-prolog") then
+»     ### SWI-Prolog
+»     echo "echo [ $arg1 , $arg2 ]. | $PROLOG -s $file -t main" » $command
+»     chmod +x $command
+»     exit 0
+» else if ($PSYSTEM == "sicstus") then
+diff -W160 -r llp051/emulator/sysdep.c /usr/local/llp/emulator/sysdep.c
+10c10
+« #ifdef NEXT
+---
+» #if 1
