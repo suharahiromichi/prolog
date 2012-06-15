@@ -1,291 +1,90 @@
 %%
-
-
 %% Core Scheme
-
-
 %% 最内側評価のlambda簡約系
-
-
 %%
-
-
-
-
-
 
 ?- op(600, yfx, :).
 
-
-
-
-
-
 eval(E, E2) :-
-
-
         empty_assoc(V),
-
-
         eval(E, V, E2).
-
-
-
-
-
-
 eval([], _, []) :- !.
-
-
 eval([A|L], E, [A1|L1]) :- !,
-
-
         eval(A, E, A1),
-
-
         eval(L, E, L1).
-
-
 eval(A, _, A) :- number(A), !.
-
-
 eval(A, E, A1) :- atom(A),
-
-
         get_assoc(A, E, A1), !.
-
-
 eval(A, _, A) :- atom(A), !.
-
-
 eval(let(X=M, B), E, B2) :- !,
-
-
         eval(M, E, M1),
-
-
         put_assoc(X, E, M1, E1),
-
-
         eval(B, E1, B2).
-
-
 eval(if0(C, M, N), E, M2) :-
-
-
         eval(C, E, C1),
-
-
         ((C1 = [] ; C1 = nil ; C1 = false ; C1 = 0 ) ->
-
-
          eval(N, E, M2);
-
-
          eval(M, E, M2)).
-
-
 eval(lambda(X, B), E, env(lambda(X, B), E)) :- !.
-
-
 eval(env(M, E), _, M1) :- !,
-
-
         eval(M, E, M1).
-
-
 eval(F:A, E, A2) :-
-
-
         eval(F, E, F1),
-
-
         eval(A, E, A1),
-
-
         apply(F1, A1, E, A2), !.
-
-
 eval(F|A, E, [F1|A1]) :-
-
-
         eval(F, E, F1),
-
-
         eval(A, E, A1), !.
-
-
 eval(lambda(X, lambda(Y, cons(X, Y))), _, [X|Y]).
-
-
 eval(delay(M), E, env(M, E)).
-
-
 eval(force(M), E, M2) :-
-
-
         eval(M, E, M1),                     % eval(env(M, E), _, M1)
-
-
         eval(M1, E, M2).
 
-
-
-
-
-
 apply(car, [M|_], _, M).
-
-
 apply(cdr, [_|N], _, N).
-
-
 apply(iszero, 0, _, t) :- !.
-
-
 apply(iszero, _, _, []).
-
-
 apply(cons, A, _, lambda(X, [A|X])).
-
-
 apply(inc, A, _, M) :-
-
-
         M is A + 1.
-
-
 apply(dec, A, _, M) :-
-
-
         M is A - 1.
-
-
 apply(lambda(X, B), A, E, A2) :-
-
-
         put_assoc(X, E, A, E1),
-
-
         eval(B, E1, A2).
-
-
 apply(env(lambda(X, B), E), A, _, A2) :-
-
-
         put_assoc(X, E, A, E1),
-
-
         eval(B, E1, A2).
-
-
 apply(F, A, _, F:A) :- atom(F), !.
 
-
-
-
-
-
-
-
-
-
 test :-
-
-
 %       trace(eval),
-
-
         T = lambda(a, lambda(b, a)),
-
-
         F = lambda(a, lambda(b, b)),
-
-
         AND = lambda(a, lambda(b, a:b:F)),
-
-
         OR = lambda(a, lambda(b, a:T:b)),
-
-
         NOT = lambda(a, a:F:T),
-
-
         eval(OR:T:T:1:0, X1),
-
-
         write('result is ...'), write(X1), nl,
-
-
         eval(OR:T:F:1:0, X2),
-
-
         write('result is ...'), write(X2), nl,
-
-
         eval(OR:F:T:1:0, X3),
-
-
         write('result is ...'), write(X3), nl,
-
-
         eval(OR:F:F:1:0, X4),
-
-
         write('result is ...'), write(X4), nl,
-
-
         true.
 
-
-
-
-
-
-
-
-
-
 t0 :-
-
-
         eval(let(x=lambda(x, lambda(y, y)), x:1:2), R),
-
-
         write('result is ...'), write(R), nl.
-
-
-
-
-
 
 t :-
-
-
         D_INT_LIST = lambda(n, n|delay(D_INT_LIST:(inc:n))),
-
-
         FIRST_SUMS = lambda(n, lambda(l, if0(iszero:n,
-
-
                                              [],
-
-
                                              car:l|FIRST_SUMS:(dec:n):force(cdr:l)))),
-
-
         eval(FIRST_SUMS:10:(D_INT_LIST:1), R),
-
-
         write('result is ...'), write(R), nl.
-
-
-
-
-
-
-
-
-
 
 %% END
