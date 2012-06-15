@@ -1,461 +1,144 @@
 %%
-
-
 %% Whitespace Parser
-
-
 %%
-
-
 %%
-
-
 %% % cat init.swi
-
-
 %% ?- ['ws-ps.swi'].
-
-
 %% ?- go.
-
-
 %%
-
-
 %% % pl -f init.swi < hworld.ws | more
 
-
-
-
-
-
 ps(E) :-
-
-
         scan(C),
-
-
         ps_imp(C, E).
 
-
-
-
-
-
 ps_imp(space, [E|E2]) :-
-
-
         scan(C),
-
-
         ps_stack(C, E),
-
-
         ps(E2).
-
-
 ps_imp(tab, [E|E2]) :-
-
-
         scan(C),
-
-
         ps_other(C, E),
-
-
         ps(E2).
-
-
 ps_imp(lf, [E|E2]) :-
-
-
         scan(C), scan(D),
-
-
         ps_flow(C, D, E),
-
-
         ps(E2).
-
-
 ps_imp(_, []).                              % eof
 
-
-
-
-
-
-
-
-
-
 ps_stack(space, push(N)) :-
-
-
         ps_number(N).
-
-
 ps_stack(tab, E) :-
-
-
         scan(C),
-
-
         ps_stack_tab(C, E).
-
-
 ps_stack(lf, E) :-
-
-
         scan(C),
-
-
         ps_stack_lf(C, E).
 
-
-
-
-
-
 ps_stack_tab(space, ref(N)) :-
-
-
         ps_number(N).
-
-
 ps_stack_tab(lf, slide(N)) :-
-
-
         ps_number(N).
-
-
-
-
-
 
 ps_stack_lf(space, dup).
-
-
 ps_stack_lf(tab, swap).
-
-
 ps_stack_lf(lf, discard).
 
-
-
-
-
-
 ps_other(space, E) :-
-
-
         scan(C), scan(D),
-
-
         ps_arithm(C, D, E).
-
-
 ps_other(tab, E) :-
-
-
         scan(C),
-
-
         ps_heap(C, E).
-
-
 ps_other(lf, E) :-
-
-
         scan(C), scan(D),
-
-
         ps_io(C, D, E).
 
-
-
-
-
-
 ps_arithm(space, space, plus).
-
-
 ps_arithm(space, tab, minus).
-
-
 ps_arithm(space, lf, times).
-
-
 ps_arithm(tab, space, divide).
-
-
 ps_arithm(tab, tab, modulo).
 
-
-
-
-
-
 ps_heap(space, store).
-
-
 ps_heap(tab, retrieve).
 
-
-
-
-
-
 ps_io(space, space, putchar).
-
-
 ps_io(space, tab, putnum).
-
-
 ps_io(tab, space, readchar).
-
-
 ps_io(tab, tab, readnum).
 
-
-
-
-
-
 ps_flow(space, space, label(L)) :-
-
-
         ps_label(L).
-
-
 ps_flow(space, tab, call(L)) :-
-
-
         ps_label(L).
-
-
 ps_flow(space, lf, jump(L)) :-
-
-
         ps_label(L).
-
-
 ps_flow(tab, space, jz(L)) :-
-
-
         ps_label(L).
-
-
 ps_flow(tab, tab, jn(L)) :-
-
-
         ps_label(L).
-
-
 ps_flow(tab, lf, return).
-
-
 ps_flow(lf, lf, end).
 
-
-
-
-
-
-
-
-
-
 ps_number(X) :-
-
-
         scan(C),
-
-
         ps_number(C, X).
-
-
-
-
-
-
 ps_number(space, X) :-                      % 符号桁
-
-
         scan(C),
-
-
         ps_number2(C, X, _).
-
-
 ps_number(tab, X) :-                        % 符号桁
-
-
         scan(C),
-
-
         ps_number2(C, X1, _),
-
-
         X is (-1) * X1.
-
-
 ps_number(lf, 0).                           % 符号桁
 
-
-
-
-
-
 %% C:コード
-
-
 %% X:後ろの値
-
-
 %% N:後ろの桁数
-
-
 ps_number2(space, X, N) :-
-
-
         scan(C),
-
-
         ps_number2(C, X, N1),
-
-
         N is N1 + 1.
-
-
 ps_number2(tab, X, N) :-
-
-
         scan(C),
-
-
         ps_number2(C, X1, N1),
-
-
         X is 2**N1 + X1,
-
-
         N is N1 + 1.
-
-
 ps_number2(lf, 0, 0).
 
-
-       
-
-
 ps_label(X) :-
-
-
         scan(C),
-
-
         ps_label(C, X).
-
-
 ps_label(space, X) :-
-
-
         scan(C),
-
-
         ps_label(C, X1),
-
-
         X is X1 * 2.
-
-
 %       atomconcat('s', X1, X).             % X is s##X1
-
-
 ps_label(tab, X) :-
-
-
         scan(C),
-
-
         ps_label(C, X1),
-
-
         X is X1 * 2 + 1.
-
-
 %       atomconcat('t', X1, X).             % X is t##X1
-
-
 ps_label(lf, 0).
 
-
-
-
-
-
-
-
-
-
 scan(C) :-
-
-
         repeat,
-
-
         get_code(X),
-
-
         code(X, C), !,
-
-
         (false ->
-
-
          write('             '),
-
-
          write(C), write('('), write(X), write(')'), nl;
-
-
          true).
 
-
-
-
-
-
 code(X,    eof) :- X < 0.
-
-
 code(0x20, space) :- !.                     % SP
-
-
 code(0x09, tab) :- !.                       % HT
-
-
 code(0x0a, lf) :- !.                        % NL
 
-
-
-
-
-
 write_list([]).
-
-
 write_list([E|E1]) :-
-
-
         write(E), nl,
-
-
         write_list(E1).
-
-
        
-
-
 %% END
