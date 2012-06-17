@@ -65,18 +65,18 @@ ats(Exp,
         type_size(Type2, Size).             % サイズを求める。
 
 ats2(aref(Exp, I), add(Adrs2, A2), Type2, Is_Outer) :-
-        (Is_Outer = true -                 % 参照は、
+        (Is_Outer = true ->                 % 参照は、
          (I = A:_; A = I );                 % 範囲指定でもどちらでもよい。
          I \= _:_, A = I),                  % 範囲指定は許さない。
         (ats2(Exp, Adrs, array(S:_, Type), false);
          ats2(Exp, Adrs, array(_, Type), false), S = 0 ),
-        (I = A:B -                         % 範囲指定の場合
+        (I = A:B ->                         % 範囲指定の場合
          Type2 = array(A:B, Type);          % 指定が新たな範囲となる。
          Type2 = Type),
-        (atom(Adrs) -
+        (atom(Adrs) ->
          Adrs2 = Adrs;
          Adrs2 = ref(Adrs)),
-        (number(A), number(S) -
+        (number(A), number(S) ->
          A2 is A - S;
          A2 = sub(A, S)).
 ats2(Var, Var, Type, _) :-

@@ -7,42 +7,42 @@
 %% サンプルは、以下のページから。
 %% http://www.ueda.info.waseda.ac.jp/~ohtani/wiki/index.php?Grass
 
-prog([Abs]) --
+prog([Abs]) -->
         abs(Abs).
-prog([Abs|Prog]) --
+prog([Abs|Prog]) -->
         abs(Abs), v, progs(Prog).
 
-progs([Abs]) --
+progs([Abs]) -->
         abs(Abs).
-progs(Apps) --
+progs(Apps) -->
         apps(Apps).
-progs([Abs|Prog]) --
+progs([Abs|Prog]) -->
         abs(Abs), v, progs(Prog).
-progs(Prog2) --
+progs(Prog2) -->
         apps(Apps), v, progs(Prog), {append(Apps, Prog, Prog2)}.
 
-app(app(NW, Nw)) --
+app(app(NW, Nw)) -->
         ww(NW), w(Nw).
 
-abs(abs(Nw, Apps)) --
+abs(abs(Nw, Apps)) -->
         w(Nw), apps(Apps).
 
-apps([App]) --
+apps([App]) -->
         app(App).
-apps([App|Apps]) --
+apps([App|Apps]) -->
         app(App), apps(Apps).
 
-w(N2) --
+w(N2) -->
         ("w"; "ｗ"), w(N), {N2 is N + 1}.
-w(1) --
+w(1) -->
         ("w"; "ｗ").                        % 119, 65367
 
-ww(N2) --
+ww(N2) -->
         ("W"; "Ｗ"), ww(N), {N2 is N + 1}.
-ww(1) --
+ww(1) -->
         ("W"; "Ｗ").                        % 87, 65335
 
-v --
+v -->
         ("v"; "ｖ").                        % 118, 65366
 
 go1(Prog) :-

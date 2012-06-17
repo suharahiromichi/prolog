@@ -33,7 +33,7 @@ options :-
         assert(opt_listing(LISTING)),
         assert(opt_trace(TRACE)),
         assert(opt_heap(HEAP)),
-        (opt_debug(true) -
+        (opt_debug(true) ->
          write('Whitespace src:   '), write(FILENAME), nl,
          write('Debug:            '), write(DEBUG), nl,
          write('Listing Only:     '), write(LISTING), nl, % not execute
@@ -43,16 +43,16 @@ options :-
          true).
 
 go:-
-        (arg_filename(stdin) - true;
+        (arg_filename(stdin) -> true;
          arg_filename(FILENAME), see(FILENAME)),
         ps(E), !,
-        (arg_filename(stdin) - true;
+        (arg_filename(stdin) -> true;
          seen),
-        (opt_listing(true) - write_list(E);
+        (opt_listing(true) -> write_list(E);
          vm(E)).
 
 ?- options.
-?- (opt_debug(false) - go; true).
-?- (opt_debug(false) - halt; true).
+?- (opt_debug(false) -> go; true).
+?- (opt_debug(false) -> halt; true).
 
 %% END

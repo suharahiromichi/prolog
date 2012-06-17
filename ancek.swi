@@ -14,7 +14,7 @@
 %%
 
 go :-
-        (true -
+        (true ->
          trace(eval);
          true),
         aneval(let(a=3, let(b=lambda(x, inc:x), b:a)), _),
@@ -29,7 +29,7 @@ go :-
 aneval(C, R) :-
         empty_assoc(E),
         eval(C, E, ar(x, x, E, stop), R), !, % 開始条件
-        (true -
+        (true ->
          write(C), nl,
          write(R), nl,
          nl;
@@ -50,7 +50,7 @@ eval(V, E, stop, R) :-
 
 eval(if0(V, MT, ME), E, K, R) :- !,
         gamma(V, E, V1),                    % V1 = γ(V, E)
-        ((V1 = [] ; V1 = nil ; V1 = false ; V1 = 0 ) -
+        ((V1 = [] ; V1 = nil ; V1 = false ; V1 = 0 ) ->
          eval(MT, E, K, R);
          eval(ME, E, K, R)).
 

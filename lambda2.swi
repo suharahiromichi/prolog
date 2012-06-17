@@ -9,7 +9,7 @@ eval(E, E2) :-
 
 eval_loop(E, E2) :-
         beta(E, E1), !,
-        (E = E1 -                          % Eが既約か？
+        (E = E1 ->                          % Eが既約か？
          E2 = E1;                           % 終了する。
          eval_loop(E1, E2)).                % 繰り返す。
 
@@ -17,7 +17,7 @@ beta(lambda(X, Q):R, Q1) :- !,
         rewrite(X, R, Q, Q1).
 beta(P:Q, P1:Q1) :- !,
         beta(P, P1),
-        (P = P1 -                          % Pが既約か？
+        (P = P1 ->                          % Pが既約か？
          beta(Q, Q1);                       % Qを変換する。
          Q1 = Q).                           % 一旦終了する。
 beta(P, P).

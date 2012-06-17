@@ -23,7 +23,7 @@ append([A|L], B, [A|L2]) :-
 append([], B, B).
 
 append2(L, B, L2) :-
-        L = [A|L0] -
+        L = [A|L0] ->
         append2(L0, B, L1),
         L2 = [A|L1];
         L2 = B.
@@ -39,7 +39,7 @@ resolve((Goal, Rest)) :- !,
 resolve(A = B) :- !,
         A = B.
 resolve(P - Q ; R) :- !,
-        resolve(P) -
+        resolve(P) ->
         resolve(Q);
         resolve(R).
 resolve(Goal) :-

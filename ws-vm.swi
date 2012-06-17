@@ -13,7 +13,7 @@ vm(E) :-
 vm_labl([], L, L).
 vm_labl([label(A)|E], L, L2) :- !,
         put_assoc(A, L, E, L1),
-        (opt_trace(true) -
+        (opt_trace(true) ->
          write(label(A));
          true),
         vm_labl(E, L1, L2).
@@ -22,14 +22,14 @@ vm_labl([_|E], L, L2) :-
 
 vm_loop([], S, C, H, L) :-
         nl,
-        (false -
+        (false ->
          write('S '), write(S), nl,
          write('C '), write(C), nl,
          write('H '), write(H), nl,
          write('L '), write(L), nl;
          true).
 vm_loop(E, S, C, H, L) :- !,
-        (opt_trace(true) -
+        (opt_trace(true) ->
          E = [T|_], write(T), nl;           % trace
          true),
         eval(E, E1, S, S1, C, C1, H, H1, L, L1),
@@ -64,13 +64,13 @@ eval([modulo  |E],  E,  [X,Y|S], [Z|S],   C, C,     H, H,  L, L) :-
 
 eval([store   |E],  E,  [N, Loc|S], S,    C, C,     H, H2, L, L) :-
         put_assoc(Loc, H, N, H2),
-        (opt_heap(true) -
+        (opt_heap(true) ->
          write(' store: Loc: '), write(Loc),
          write('      value: '), write(N), nl;
          true).
 eval([retrieve|E],  E,  [Loc|S], [X|S],   C, C,     H, H,  L, L) :-
         (get_assoc(Loc, H, X); X = 0),
-        (opt_heap(true) -
+        (opt_heap(true) ->
          write(' retrieve: Loc: '), write(Loc),
          write('         value: '), write(X), nl;
          true).
@@ -84,7 +84,7 @@ eval([jump(A) |_],  E2, S, S,             C, C,     H, H,  L, L) :-
 eval([jz(A)   |_],  E2, [X|S], S,         C, C,     H, H,  L, L) :- X = 0, !,
         (get_assoc(A, L, E2); write('label not found.'), nl).
 eval([jz(_)   |E],  E,  [_|S], S,         C, C,     H, H,  L, L) :- !.
-eval([jn(A)   |_],  E2, [X|S], S,         C, C,     H, H,  L, L) :- X  0, !,
+eval([jn(A)   |_],  E2, [X|S], S,         C, C,     H, H,  L, L) :- X < 0, !,
         (get_assoc(A, L, E2); write('label not found.'), nl).
 eval([jn(_)   |E],  E,  [_|S], S,         C, C,     H, H,  L, L) :- !.
 eval([return  |_],  E2, S,     S,         [E2|C], C, H, H, L, L). 
@@ -97,14 +97,14 @@ eval([putnum  |E],  E,  [X|S], S,         C, C,     H, H,  L, L) :-
 eval([readchar|E],  E,  [Loc|S], S,       C, C,     H, H2, L, L) :-
         get_code(X),                        % get an ascii code.
         put_assoc(Loc, H, X, H2),
-        (opt_heap(true) -
+        (opt_heap(true) ->
          write(' store: Loc: '), write(Loc),
          write('      value: '), write(X), nl;
          true).
 eval([readnum |E],  E,  [Loc|S], S,       C, C,     H, H2, L, L) :-
         read(X), (number(X); X = 0),        % read a atom.
         put_assoc(Loc, H, X, H2),       
-        (opt_heap(true) -
+        (opt_heap(true) ->
          write(' store: Loc: '), write(Loc),
          write('      value: '), write(X), nl;
          true).

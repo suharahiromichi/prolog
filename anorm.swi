@@ -16,7 +16,7 @@
 ?- op(600, yfx, :).
 
 go :-
-        (false -
+        (false ->
          trace(normalize),
          trace(normalize_name),
          trace(normalize_name_s);
@@ -37,7 +37,7 @@ go :-
 anorm(M, R) :- !,
         fec(M, M1),
         normalize(M1, R),
-        (true -
+        (true ->
          write(M), nl,
          write(M1), nl,
          write(R), nl,
@@ -167,12 +167,12 @@ rewrite(X, N, P:Q, P1:Q1) :- !,
         rewrite(X, N, P, P1),
         rewrite(X, N, Q, Q1).
 rewrite(X, N, lambda(Y, Q), lambda(Y, Q1)) :- !,
-        (X \= Y -
+        (X \= Y ->
          rewrite(X, N, Q, Q1);
          Q1 = Q).
 rewrite(X, N, let(Y=M, Q), let(Y=M1, Q1)) :- !,
         rewrite(X, N, M, M1),
-        (X \= Y -
+        (X \= Y ->
          rewrite(X, N, Q, Q1);
          Q1 = Q).
 rewrite(_, _, M, M).
