@@ -1,0 +1,46 @@
+%% Counterと副作用を伴うループの例
+%% 2012_08_04
+
+%% 副作用によるカウンタ
+counter_init(Count) :-
+        nb_setval(Count, 0 ).
+
+counter_init(Count, Y) :-
+        nb_setval(Count, Y).
+
+counter_inc(Count) :-
+        nb_getval(Count, X),
+        Y is X + 1,
+        nb_setval(Count, Y).
+
+counter_dec(Count) :-
+        nb_getval(Count, X),
+        Y is X - 1,
+        nb_setval(Count, Y).
+
+counter_get(Count, X) :-
+        nb_getval(Count, X).
+
+%% do文
+do(Start, End, Inc) :-
+        do(Start, End, Inc, _).
+do(Start, End, Inc, _) :-
+        (Inc > 0 ->
+         Start > End;
+         Start < End),
+        !,
+        fail.
+do(Start, _, _, Start).
+do(Start, End, Inc, Ref) :- !,
+        NewValue is Start + Inc,
+        do(NewValue, End, Inc, Ref).
+
+go :-
+        counter_init(c),
+        do(0, 10, 1, Ref),
+        counter_get(c, X),
+        write(Ref), write('	'), writeln(X),
+        counter_inc(c),
+        fail.
+
+%% END.
