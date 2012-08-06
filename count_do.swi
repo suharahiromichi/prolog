@@ -9,11 +9,15 @@ counter_init(Count, Y) :-
         nb_setval(Count, Y).
 
 counter_inc(Count) :-
+        counter_inc(Count, _).
+counter_inc(Count, Y) :-
         nb_getval(Count, X),
         Y is X + 1,
         nb_setval(Count, Y).
 
 counter_dec(Count) :-
+        counter_dec(Count, _).
+counter_dec(Count, Y) :-
         nb_getval(Count, X),
         Y is X - 1,
         nb_setval(Count, Y).
@@ -39,8 +43,10 @@ go :-
         counter_init(c),
         do(0, 10, 1, Ref),
         counter_get(c, X),
-        write(Ref), write('	'), writeln(X),
-        counter_inc(c),
+        counter_inc(c, Y),
+        write(Ref), write('	'),
+        write(X), write('	'),
+        writeln(Y),
         fail.
 
 %% END.
