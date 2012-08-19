@@ -1,0 +1,126 @@
+/*
+  * ツインドラゴンを描く
+  * twindragon
+  *
+  * 和田先生 パラメトロン計算機 再帰曲線
+  * http://parametron.blogspot.jp/2009/06/blog-post_20.html
+  *
+  * ただし、実装は独自なもの。
+  * 使い方。
+  * % prolog -f twindragon -t go > td.dat
+  * % gnuplot
+  * gnuplot> plot "td.dat"
+  */
+
+%% 複数進数の定義
+base(complex(-1, 1)).
+coef(0).
+coef(1).
+size(16).
+
+%% 底から、それを(-1,-2,....,-16乗で)展開した複素数のリストを作る。
+mkbase(K) :-
+        size(N), N1 is N - 1,
+        nestlist(mkbase2, N1, 256, K).
+mkbase2(X, Y) :- !,
+        base(B),
+        cdiv(X, B, Y).
+
+%% 仮数のリストを作る。
+mkdat(L) :-
+        size(N),
+        mkdat2(N, L).
+mkdat2(0, []) :- !.
+mkdat2(N, [X|L]) :-
+        N1 is N - 1, !,
+        coef(X),
+        mkdat2(N1, L).
+
+%% 印刷用関数
+print(C) :-
+        c2ri(C, R, I),
+        write(R),
+        write('	'),
+        write(I),
+        nl.
+
+%% メイン
+go :-
+        mkbase(K),
+        mkdat(L),
+        maplist(cmul, L, K, KL),
+        fold(cadd, 0, KL, KK),
+        print(KK),
+        fail.
+
+/*
+  * いつもの高階述語たち。
+  */
+nestlist(_, N, X, [X]) :-
+        (var(N) ; N =< 0), !.
+nestlist(P, N, X, [X2|L2]) :-
+        call(P, X, X2),
+        N2 is N - 1,
+        nestlist(P, N2, X2, L2).
+
+fold(_, X, [], X) :- !.
+fold(P, X, [Y|L], X2) :-
+        call(P, X, Y, X1),
+        fold(P, X1, L, X2).
+
+/*
+  * 複素数の計算
+  */
+cadd(complex(R1, I1), complex(R2, I2), complex(R3, I3)) :- !,
+        R3 is R1 + R2,
+        I3 is I1 + I2.
+cadd(R1, complex(R2, I), complex(R3, I)) :- !,
+        R3 is R1 + R2.
+cadd(complex(R1, I), R2, complex(R3, I)) :- !,
+        R3 is R1 + R2.
+cadd(R1, R2, R3) :-
+        R3 is R1 + R2.
+
+csub(complex(R1, I1), complex(R2, I2), complex(R3, I3)) :- !,
+        R3 is R1 - R2,
+        I3 is I1 - I2.
+csub(R1, complex(R2, I), complex(R3, I)) :- !,
+        R3 is R1 - R2.
+csub(complex(R1, I), R2, complex(R3, I)) :- !,
+        R3 is R1 - R2.
+csub(R1, R2, R3) :-
+        R3 is R1 - R2.
+
+cmul(complex(R1, I1), complex(R2, I2), complex(R3, I3)) :- !,
+        R3 = R1 * R2 - I1 * I2,
+        I3 = R1 * I2 + I1 * R2.
+cmul(R1, complex(R2, I2), complex(R3, I3)) :- !,
+        R3 = R1 * R2,
+        I3 = R1 * I2.
+cmul(complex(R1, I1), R2, complex(R3, I3)) :- !,
+        R3 = R1 * R2,
+        I3 = I1 * R2.
+cmul(R1, R2, R3) :-
+        R3 = R1 * R2.
+
+ccnj(complex(R1, I1), complex(R1, I2)) :- !,
+        I2 is - I1.
+ccnj(R, R).
+
+csqr(complex(R1, I1), R2) :-
+        R2 is R1 * R1 + I1 * I1.
+
+cdiv(C1, complex(R2, I2), C3) :- !,
+        ccnj(complex(R2, I2), CC2),
+        csqr(complex(R2, I2), Deno),
+        cmul(C1, CC2, Nume),
+        cdiv(Nume, Deno, C3).
+
+cdiv(complex(R1, I1), R2, complex(R3, I3)) :-
+        R3 is R1 / R2,
+        I3 is I1 / R2.
+
+c2ri(complex(R, I), R, I) :- !.
+c2ri(R, R, 0) :- !.
+
+% end.
