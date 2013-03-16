@@ -1,0 +1,109 @@
+/*
+  剰余について
+  2013_03_16
+  @suharahiromichi
+  
+  A mod B を M とする。すると、
+  
+  A = f(A / B) * B + M
+  
+  ここで、「/」は実数割り算で、fは整数化の関数である。
+  また、fの定義によらず、f(A / B)*B の符号はAに等しい(*)。
+  
+  C Style (f1)、被除数と同符号。
+  fが0方向への切り捨てのとき、|A|≧|f(A/B)*B| だがら、(*)を考慮して絶対値を外すと、
+  Aが正、Bが正なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが正なら、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  Aが正、Bが負なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが負なら、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  つまり、Mの符号はA(Dividend)に等しい。
+  
+  Ruby Style (f2)、除数と同符号。
+  fが-∞方向への切り捨て(ceil)のとき、A/B≧f(A/B)だから、両辺にBを掛けると、
+  Aが正、Bが正なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが正なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが正、Bが負なら、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  Aが負、Bが負なら、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  つまり、Mの符号はB(Divisor)に等しい。
+  
+  C99 remainder (f3)、絶対値で最小。
+  fが四捨五入のとき、|A - f(A/B)*B| が最小になるから、|M|も最小になる。
+  Mは絶対値が最小に選ばれることになる。絶対値最小剰余代表系という。
+  
+  Pascal Style (f4)、常に正。
+  Bが正ならfloor、つまり、Bが正ならA/B≧f(A/B)。
+  Bが負ならceil、つまり、Bが負ならA/B≦f(A/B)。
+  あるいは、ユーグリッド除法のとき、A≧f(A/B)*B だがら、
+  Aが正、Bが正なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが正なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが正、Bが負なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが負なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  つまり、Mは常に正になる。非負剰余代表系という。
+  
+  (f5)、商と同符号。
+  Aが正ならfloor、つまり、Aが正ならA/B≧f(A/B)
+  Aが負ならceil、つまり、Aが負ならA/B≦f(A/B)
+  Aが正、Bが正なら、商は正、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが正なら、商は負、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  Aが正、Bが負なら、商は負、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  Aが負、Bが負なら、商は正、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Mは、Dと同じ符号になる。
+  
+  (f6)、×
+  fが+∞方向の切り上げのとき、A/B≦f(A/B)だから、両辺にBを掛けると、
+  Aが正、Bが正なら、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  Aが負、Bが正なら、A≦f(A/B)*B、M = A - f(A/B)*B ≦ 0
+  Aが正、Bが負なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  Aが負、Bが負なら、A≧f(A/B)*B、M = A - f(A/B)*B ≧ 0
+  つまり、Mの符号はB(Divisor)の符号の逆になる。
+  10/3が-2になるため、これは適切な定義ではない。
+  
+  以下、テストコード
+*/
+
+modulo(F, A, B, D, M) :-
+        call(F, A, B, D),
+        M is A - D * B.
+
+testcase( 10,  3).
+testcase(-10,  3).
+testcase( 10, -3).
+testcase(-10, -3).
+testcase( 20,  3).
+testcase(-20,  3).
+testcase( 20, -3).
+testcase(-20, -3).
+
+test(F) :-
+        testcase(X, Y),
+        modulo(F, X, Y, D, M),
+        format('~d~6+\tdiv\t~d~6+\tis\t~d~6+\t...\t~d~6+\n', [X, Y, D, M]),
+        fail.
+test(F).
+
+f1(A, B, D) :- D is truncate(A / B).        % C style
+f2(A, B, D) :- D is floor(A / B).           % Ruby style
+
+% 絶対値最小剰余代表系
+f3(A, B, D) :- D is round(A / B).           % C99 remainder like
+
+% ユーグリッド除法（非負剰余代表系）
+% C99では、D = 0.5のとき偶数になるように丸められる。
+f4(A, B, D) :-                              % Pascal Style
+        B > 0 -> D is floor(A / B);
+        D is ceiling(A / B).
+
+f5(A, B, D) :-                              % unknown
+        A > 0 -> D is floor(A / B);
+        D is ceiling(A / B).
+f6(A, B, D) :- D is ceiling(A / B).         % unknown
+
+go :-
+        writeln('C style'), test(f1),
+        writeln('Ruby Style'), test(f2),
+        writeln('C99 remainder like'), test(f3),
+        writeln('Pascal Style'), test(f4),
+        writeln('unknown style5'), test(f5),
+        writeln('unknown style6'), test(f6).
+
+% end
