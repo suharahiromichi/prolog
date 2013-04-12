@@ -1,0 +1,76 @@
+#! /usr/bin/prolog -q -g go -s
+%
+% ./pp.swi < stdin
+%
+% 入力の最後に「.」を忘れないこと。
+%
+
+go :-
+        read(IN),
+        pp(IN), !,
+        fail.
+
+pp_sw1 :- fail.                             % 複数引数の関数名の次に改行するか。
+pp_sw2 :- fail.                             % 単一引数の関数名の次に改行するか。
+pp_sw3(_) :- fail.                          % リストの開き括弧の次に改行するか。
+                                            % 改行するときのインデント量を指定
+' ' :- write(' ').
+'.' :- write('.'), nl.
+',' :- write(',').
+':' :- write(':').
+';' :- write(';').
+'(' :- write('(').
+')' :- write(')').
+'()' :- write('()').
+'{' :- write('{'), nl.
+'}' :- write('}'), nl.
+'{}' :- write('{}'), nl.
+'[' :- write('[').
+']' :- write(']').
+'[]' :- write('[]').
+{X} :- write(X), write(' ').
+ 
+pp(X) :-
+        nl, pp(X, 0), '.'.
+pp(X, _) :-
+        atomic(X), !,
+        write(X).
+pp([A | B], N) :-
+        '[',
+        (pp_sw3(I) ->
+         M is N + I, pp_indent(M);
+         M is N + 1),
+        pp_list([A | B], M),
+        ']'.
+pp((X - Y), N) :-
+        write(X), {' - '}, pp(Y, N).
+pp((X, Y), N) :-
+        '(', pp(X, N), ',', pp(Y, N), ')'.
+pp(X, N) :-
+        X =.. [P, Y | L], !,
+        write(P), '(',
+        atom_length(P, I), M is N + I + 1,
+        (pp_sw1 ->
+         pp_indent(M);
+         true),
+        pp_list([Y | L], M), ')'.
+
+pp_list([], _) :- !.
+pp_list([A], N) :- !,
+        pp(A, N).
+pp_list([A | B], N) :- !,
+        pp(A, N), ',',
+        pp_indent(N),
+        pp_list(B, N).
+pp_list(A, N) :- !,
+        {'|'}, pp(A, N).
+
+pp_indent(N) :-
+        nl, pp_indent2(N).
+pp_indent2(0) :- !.
+pp_indent2(N) :-
+        ' ',
+        M is N - 1,
+        pp_indent2(M).
+
+%% END.
