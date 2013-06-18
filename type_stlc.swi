@@ -4,9 +4,9 @@
 %% 2013_06_17 @suharahiromichi
 %%
 
-%% 以下は設定せずしない。
-%% コンテキストからの取り出しのときにだけ、チェックする。
+%% Occurs Checkを一律には設定しない。
 %% :- set_prolog_flag(occures_check, true).
+%% コンテキストからの取り出しのときにだけ、チェックする。
 
 :- op(600, xfx, :).                         % Tm : T
 :- op(500, xfy, ->).                        % ty_arrow の中置記法
@@ -33,11 +33,13 @@ has_type(Gamma, tm_if(Tm1, Tm2, Tm3), T) :-
 %% 数値
 has_type(_, tm_nat(N), ty_Nat) :-
         number(N), !.
-has_type(Gamma, tm_app(tm_succ, Tm1), ty_Nat) :-
+has_type(Gamma, tm_succ(Tm1), ty_Nat) :-
         has_type(Gamma, Tm1, ty_Nat).
-has_type(Gamma, tm_app(tm_pred, Tm1), ty_Nat) :-
+has_type(Gamma, tm_pred(Tm1), ty_Nat) :-
         has_type(Gamma, Tm1, ty_Nat).
-has_type(Gamma, tm_app(tm_app(tm_mult, Tm1), Tm2), ty_Nat) :-
+has_type(Gamma, tm_mult(Tm1), ty_Nat -> ty_Nat) :-
+        has_type(Gamma, Tm1, ty_Nat).
+has_type(Gamma, tm_mult(Tm1, Tm2), ty_Nat) :- % multは2種類
         has_type(Gamma, Tm1, ty_Nat),
         has_type(Gamma, Tm2, ty_Nat).
 has_type(Gamma, tm_if0(Tm1, Tm2, Tm3), T) :-
@@ -49,7 +51,7 @@ getFromContext(Gamma, X : T) :- !,
         member_with_occurs_check(X : T, Gamma).
 
 member_with_occurs_check(A, [B | _]) :-
-        unify_with_occurs_check(A, B).
+        unify_with_occurs_check(A, B).      % Occurs Check！
 member_with_occurs_check(A, [_ | C]) :-
         member_with_occurs_check(A, C).
 
