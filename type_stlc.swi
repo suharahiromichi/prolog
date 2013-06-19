@@ -89,7 +89,7 @@ go3 :-                                      % false
 go4 :-                                      % TaPL 例22.2.2
         G = [f : X, a : Y],
         has_type(G, tm_app(tm_var(f), tm_var(a)), T),
-        writeln([G, T]).
+        write([G, T]).
 %% [f : Y -> Z, a : Y], T=Z
 
 go5 :-                                      % TaPL 演習22.2.3
@@ -100,8 +100,8 @@ go5 :-                                      % TaPL 演習22.2.3
                                       tm_app(tm_app(tm_var(x), tm_var(z)),
                                              tm_app(tm_var(y), tm_var(z)))))),
                  T),
-        writeln([[X,Y,Z], T]).
-%% X=A->B->C, Y=A-B, Z=A, T=(A->B->C)->(A-B)->A->C
+        write([[X,Y,Z], T]).
+%% X=A->B->C, Y=A->B, Z=A, T=(A->B->C)->(A-B)->A->C
 
 %% SFの練習問題
 go6 :-                                      % true
@@ -110,7 +110,7 @@ go6 :-                                      % true
                                tm_var(b)),
                         tm_var(a)),
                  S),
-        writeln(S).                         % Bool->Bool
+        write(S).                           % Bool->Bool
 
 go71 :-                                     % true
         has_type([],
@@ -118,7 +118,7 @@ go71 :-                                     % true
                         tm_abs(a:B,
                                tm_app(tm_var(b), tm_var(a)))),
                  T),
-        writeln([B, T]).                    % T=(B->B->B)->B->B->B
+        write([B, T]).                      % T=(B->B->B)->B->B->B
 
 go72 :-                                     % true.
         has_type([],
@@ -128,25 +128,25 @@ go72 :-                                     % true.
                                       tm_app(tm_var(b),
                                              tm_app(tm_var(a), tm_var(c)))))),
                  T),
-        writeln(T).
+        write(T).
 
 go73 :-                                     % true.
         has_type([a : S, b : U],
                  tm_abs(c : A, tm_app(tm_var(a),
                                       tm_app(tm_var(b), tm_var(c)))),
                  T),
-        writeln([S, U, A, T]).
+        write([S, U, A, T]).
 
 go74 :-                                     % true.
         has_type([a : S],
                  tm_abs(b : A, tm_app(tm_var(a), tm_app(tm_var(a), tm_var(b)))),
                  T),
-        writeln([S, A, T]).                 % S=A->A, T=A->A
+        write([S, A, T]).                   % S=A->A, T=A->A
 
 go75 :-                                     % fail
         has_type([a : S],
                  tm_app(tm_var(a), tm_abs(c : U, tm_app(tm_var(c), tm_var(a)))),
                  T),
-        writeln([S, U, T]).
+        write([S, U, T]).
 
 %% end
