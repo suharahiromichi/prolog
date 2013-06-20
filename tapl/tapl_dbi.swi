@@ -1,0 +1,101 @@
+%%
+%% de Bruijn Index
+%%
+
+:- op(600, xfx, :).                         % Tm : T
+:- op(500, xfy, ->).                        % ty_arrow の中置記法
+
+%%
+%% 正変換
+%%
+
+dbi(Exp, Dbi) :-
+        empty_assoc(Env),
+        dbi(Exp, Env, 0, _, Dbi).
+ 
+%%
+%% dbi(↓ラムダ式, ↓環境,
+%% ↓自由変数のインデックス，↑自由変数の更新されたインデクス，
+%% ↑de Brijnインデックス)
+%%
+
+dbi(tm_app(M, N), Env, F, F2, tm_app(M2, N2)) :- !,
+        dbi(M, Env, F, F1, M2),
+        dbi(N, Env, F1, F2, N2).
+dbi(tm_abs(X:T, M), Env, F, F2, tm_abs(T, D)) :- !,
+        atom(X), !,
+        map_assoc(inc, Env, Env1),
+        put_assoc(X, Env1, 0, Env2),        % 0から始まる場合は、0にする。
+        assoc_to_values(Env2, L),
+        max_list(L, F1),
+        dbi(M, Env2, F1, F2, D).
+dbi(tm_abs(X, M), Env, F, F2, tm_abs(D)) :-
+        dbi(tm_abs(X:_, M), Env, F, F2, tm_abs(_, D)).
+        
+%% +1してもよいが、
+%% 現在の最大のインデックスの値を使う。
+%% 自由変数は、その文脈のde Bruijn Indexより大きい数ならよいので。
+ 
+dbi(tm_var(X), Env, F, F, N) :-             % 変数(de Bruijn Index)は、tm_varで囲わない。
+        atom(X),
+        get_assoc(X, Env, N), !.
+dbi(_, _, F, F1, F1) :-
+        F1 is F + 1.
+ 
+inc(N, N1) :-
+        N1 is N + 1.
+ 
+%%
+%% 逆変換
+%%
+ 
+rbi(Exp, Dbi) :-
+        rbi(Exp, 0, Dbi).
+rbi(tm_app(M, N), I, tm_app(M2, N2)) :- !,
+        rbi(M, I, M2),
+        rbi(N, I, N2).
+rbi(tm_abs(T, M), I, tm_abs(X:T, M2)) :- !,
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
+rbi(tm_abs(M), I, tm_abs(X, M2)) :- !,
+        rbi(tm_abs(_, M), I, tm_abs(X, M2)).
+rbi(N, I, tm_var(X)) :-
+        integer(N),
+        N =< I, !,                          % bound
+        N1 is I - N + 1,
+        atom_concat(x, N1, X).
+rbi(N, I, tm_var(X)) :-
+        atom_concat(x, N, X).               % free
+
+%% テスト用
+test(Tm) :-
+        write(Tm), nl,
+        dbi(Tm, Dm), write(Dm), nl,
+        rbi(Dm, Tm2), write(Tm2).
+
+%% sample
+%% TaPL 演習6.1.1
+go11 :-                                     % C0
+        test(tm_abs(s:_, tm_abs(z:_, tm_var(z)))).
+go12 :-                                     % C2
+        test(tm_abs(s:_, tm_abs(z:_,
+                                tm_app(tm_var(s), tm_app(tm_var(s), tm_var(z)))))).
+go13 :-                                     % plus
+        test(tm_abs(m,
+                    tm_abs(n,
+                           tm_abs(s,
+                                  tm_abs(z,
+                                         tm_app(tm_var(m),
+                                                tm_app(tm_var(s),
+                                                       tm_app(tm_app(tm_var(n), tm_var(s)),
+                                                              tm_var(z))))))))).
+%% 型で使う。
+go14 :-
+        Tm = tm_abs(a : ty_Bool,
+                   tm_abs(b : ty_Bool -> ty_Bool,
+                          tm_app(tm_var(b),
+                                 tm_app(tm_var(b), tm_var(a))))),
+        test(Tm).
+
+%%% END
