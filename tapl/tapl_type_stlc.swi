@@ -1,0 +1,61 @@
+%
+% TaPL 第10章 単純型のML実装
+% 型検査のプログラム
+% 型推論にも使うことができる。
+%
+
+?- ['tapl_dbi.swi'].                        % de Bruijn Index変換
+
+typeof(CTX, I, T) :-                        % 変数(de Bruijn Index)は、tm_varで囲わない。
+        number(I), !,
+        getTypeFromContext(CTX, I, T).
+typeof(CTX, tm_abs(TyT1, Tm2), TyT1 -> TyT2) :-
+        typeof([TyT1|CTX], Tm2, TyT2).
+typeof(CTX, tm_abs(Tm2), TyT1 -> TyT2) :-   % tm_absの型修飾は省略できる。
+        typeof([TyT1|CTX], Tm2, TyT2).
+typeof(CTX, tm_app(Tm1, Tm2), Ty12) :-
+        typeof(CTX, Tm1, Ty11 -> Ty12),
+        typeof(CTX, Tm2, Ty11).
+typeof(CTX, tm_true, ty_Bool).        
+typeof(CTX, tm_false, ty_Bool).
+typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
+        typeof(CTX, T1, ty_Bool),
+        typeof(CTX, T2, TyT12),
+        typeof(CTX, T3, TyT12).
+
+getTypeFromContext(CTX, I, T) :- !,
+        nth0_with_occurs_check(I, CTX, T).
+
+nth0_with_occurs_check(0, [T1|_], T2) :- !,
+        unify_with_occurs_check(T1, T2).    % Occurs Check！
+nth0_with_occurs_check(I, [_|CTX], T) :-
+        I2 is I - 1,
+        nth0_with_occurs_check(I2, CTX, T).
+
+%% いつもの例、失敗する。
+go23 :-                                     % false
+        Tm = tm_abs(x,
+                    tm_app(tm_var(x), tm_var(x))),
+        dbi(Tm, Dm), write(Dm), nl,
+        rbi(Dm, Tm2), write(Tm2), nl, !,
+        typeof([], Dm, Ty),
+        write(Ty).
+
+%% SFのサンプル
+go24 :-                                     % true
+        Tm = tm_abs(a : ty_Bool,
+                   tm_abs(b : ty_Bool -> ty_Bool,
+                          tm_app(tm_var(b),
+                                 tm_app(tm_var(b), tm_var(a))))),
+        Ty = ty_Bool -> (ty_Bool -> ty_Bool) -> ty_Bool,
+        dbi(Tm, Dm), write(Dm), nl,
+        rbi(Dm, Tm2), write(Tm2), nl, !,
+        typeof([], Dm, Ty),
+        write(Ty).
+
+go241 :-                                    % bのtm_absの型修飾なし。
+        Dm = tm_abs(ty_Bool, tm_abs(tm_app(0,tm_app(0,1)))),
+        typeof([], Dm, Ty),
+        write(Ty).
+
+%% end.
