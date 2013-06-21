@@ -1,0 +1,107 @@
+%
+% TaPL 第7章 ラムダ計算のML実装
+% tm_absに型注釈があってもよい（評価としては無視される）。
+%
+% 2013_06_13 @suharahiromichi
+%
+
+eval(CTX, Tm, Tm2) :-
+        call_until_fail(eval1(CTX), Tm, Tm2).        
+
+eval1(CTX, tm_app(tm_abs(Tm1), V2), Tm2) :-
+        eval1(CTX, tm_app(tm_abs(_, Tm1), V2), Tm2).
+eval1(CTX, tm_app(tm_abs(_, Tm1), V2), Tm2) :- !,
+        isval(CTX, V2), !,
+        term_subst_top(V2, Tm1, Tm2).
+eval1(CTX, tm_app(V1, Tm2), tm_app(V1, Tm22)) :-
+        isval(CTX, V2), !,
+        eval1(CTX, Tm2, Tm22).
+eval1(CTX, tm_app(Tm1, Tm2), tm_app(Tm12, Tm2)) :-
+        eval1(CTX, Tm1, Tm12).
+
+term_shift(D, Tm, Tm2) :- !,
+        term_shift(0, D, Tm, Tm2).
+term_shift(C, D, tm_var(X), tm_var(X1)) :-
+        X >= C, !,
+        X1 is X + D.
+term_shift(C, D, tm_var(X), tm_var(X)) :- !.
+term_shift(C, D, tm_abs(Tm1), tm_abs(Tm2)) :- !, % 型注釈なし。
+        term_shift(C, D, tm_abs(T, Tm1), tm_abs(T, Tm2)).
+term_shift(C, D, tm_abs(T, Tm1), tm_abs(T, Tm2)) :- !,
+        C1 is C + 1,
+        term_shift(C1, D, Tm1, Tm2).
+%% ここにおちないように、前の節のすべてにcutが要る。
+term_shift(C, D, Tm, Tm2) :-
+        Tm =.. [Func|Tm1s],
+        maplist(term_shift(C, D), Tm1s, Tm2s),
+        Tm2 =.. [Func|Tm2s].
+
+term_subst(J, S, Tm, Tm2) :-
+        term_subst(0, J, S, Tm, Tm2).
+term_subst(C, J, S, tm_var(X), Tm2) :-
+        plus(J, C, X), !,                   % X = J + C
+        term_shift(C, S, Tm2).
+term_subst(C, J, S, tm_var(X), tm_var(X)) :- !.
+term_subst(C, J, S, tm_abs(Tm1), tm_abs(Tm2)) :- !, % 型注釈なし。
+        term_subst(C, J, S, tm_abs(_, Tm1), tm_abs(_, Tm2)).
+term_subst(C, J, S, tm_abs(T, Tm1), tm_abs(T, Tm2)) :- !,
+        C1 is C + 1,
+        term_subst(C1, J, S, Tm1, Tm2).
+%% ここにおちないように、前の節のすべてにcutが要る。
+term_subst(C, J, S, Tm, Tm2) :-
+        Tm =.. [Func|Tm1s],
+        maplist(term_subst(C, J, S), Tm1s, Tm2s),
+        Tm2 =.. [Func|Tm2s].
+
+term_subst_top(S, Tm, Tm2) :-
+        term_shift(1, S, S1),
+        term_subst(0, S1, Tm, Tm1),
+        term_shift(-1, Tm1, Tm2).
+
+isval(_, tm_abs(_)).                        % 型注釈なし。
+isval(_, tm_abs(_, _)).                     % 型注釈あり。
+isval(_, tm_true).
+tsval(_, tm_false).
+
+call_until_fail(P, X, X2) :-
+        call(P, X, X1), !,
+        call_until_fail(P, X1, X2).
+call_until_fail(_, X, X).
+
+%% テストコード
+go31 :-
+        term_shift(10,
+                   tm_abs(tm_abs(tm_app(tm_var(1),
+                                        tm_app(tm_var(0 ), tm_var(2))))),
+                   T),
+        write(T).
+
+go32 :-
+        term_subst(0,                       % J 置き換えられる変数 de Brujin index
+                   tm_var(10),              % S 置き換える項
+                   tm_abs(tm_abs(tm_app(tm_var(1),
+                                        tm_app(tm_var(0 ), tm_var(2))))),
+                   T),
+        write(T).
+
+go33 :-                                     % TaPL p.61 の例
+        eval([],
+             tm_app(tm_abs(tm_app(tm_app(tm_var(1),
+                                         tm_var(0 )),
+                                  tm_var(2))),
+                    tm_abs(tm_var(0 ))),
+             T),
+        write(T).
+
+go333 :-                                    % 型は仮につけた。
+        eval([],
+             tm_app(tm_abs(ty_a,
+                           tm_app(tm_app(tm_var(1),
+                                         tm_var(0 )),
+                                  tm_var(2))),
+                    tm_abs(ty_b,
+                           tm_var(0 ))),
+             T),
+        write(T).
+
+%% end
