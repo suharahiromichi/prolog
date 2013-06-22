@@ -45,6 +45,14 @@ go23 :-                                     % false
         rbi(Dm, Tm2), write(Tm2), nl, !,
         typeof([], Dm, Ty),
         write(Ty).
+go231 :-
+        Tm = tm_abs(x,
+                    tm_abs(x,
+                           tm_app(tm_var(x), tm_var(x)))),
+        dbi(Tm, Dm), write(Dm), nl,
+        rbi(Dm, Tm2), write(Tm2), nl, !,
+        typeof([], Dm, Ty),
+        write(Ty).
 
 %% SFのサンプル
 go24 :-                                     % true
