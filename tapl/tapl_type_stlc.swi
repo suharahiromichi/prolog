@@ -31,16 +31,11 @@ typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
         typeof(CTX, T2, TyT12),
         typeof(CTX, T3, TyT12).
 
-getTypeFromContext(CTX, I, T) :- !,
+getTypeFromContext(CTX, I, TA) :-
+        nth0(I, CTX, TB), !,                % このcutはなくてもよい。
         (use_occurs_check(true) ->
-         nth0_with_occurs_check(I, CTX, T);
-         nth0(I, CTX, T)).
-
-nth0_with_occurs_check(0, [T1|_], T2) :- !,
-        unify_with_occurs_check(T1, T2).    % Occurs Check！
-nth0_with_occurs_check(I, [_|CTX], T) :-
-        I2 is I - 1,
-        nth0_with_occurs_check(I2, CTX, T).
+         unify_with_occurs_check(TA, TB);   % Occurs Check あり。
+         TA = TB).                          % Occurs Check なし。
 
 %% いつもの例、失敗する。
 go23 :-                                     % false
