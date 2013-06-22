@@ -1,6 +1,11 @@
 %%
 %% de Bruijn Index
 %%
+%% TaPL の書式にあわせているが、
+%% TaPLの内容（同Webページ）とは独自に実装したものである。
+%%
+%% 2013_06_22 @suharahiromichi
+%%
 
 :- op(600, xfx, :).                         % Tm : T
 :- op(500, xfy, ->).                        % ty_arrow の中置記法
