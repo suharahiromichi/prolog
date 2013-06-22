@@ -50,19 +50,15 @@ has_type(Gamma, tm_if0(Tm1, Tm2, Tm3), T) :-
         has_type(Gamma, Tm2, T),
         has_type(Gamma, Tm3, T).
 
-getFromContext(Gamma, X : T) :- !,
+getFromContext(Gamma, X : TA) :-
+        member(X : TB, Gamma), !,
         (use_occurs_check(true) ->
-         member_with_occurs_check(X : T, Gamma);
-         member(X : T, Gamma)).
-
+         unify_with_occurs_check(TA, TB);   % Occurs Check あり。
+         TA = TB).                          % Occurs Check なし。
 %% 下の例 go31 の場合を参照のこと。
-%% 第1節のcutは、Occurs Checkで失敗したときに後もどりして、
+%% cutは、Occurs Checkで失敗したときに後もどりして、
 %% 同名の変数（スコープによって隠蔽されているはずの変数）に、
 %% マッチしないようにするためのもの。
-member_with_occurs_check(X : A, [X : B | _]) :- !,
-        unify_with_occurs_check(A, B).      % Occurs Check！
-member_with_occurs_check(A, [_ | C]) :-
-        member_with_occurs_check(A, C).
 
 %%%%%%%%%%%%%%%%%%%%
 %% テストコード
@@ -177,7 +173,7 @@ go75 :-                                     % fail
 %% member述語をつかって「変数名：型」のペアを一度にとりだすのは適切ではない。
 %% なぜなら、occurs check でfailしたあと、スコープで隠蔽されている同名の別の変数
 %% にマッチしてしまうからだ。
-%% まず、名前の一致する「変数名：型」のペアを見つけてから、
-%% 型の一致をoccurs checkで判定するようにする。
+%% まず、変数名の一致する「変数名：型」のペアを見つけてから、
+%% 型の一致をoccurs check付きで判定するようにする。
 %% 型が一致しなかっときは、cutして、同名の別の変数を探しにいかないようにする。
 %%
