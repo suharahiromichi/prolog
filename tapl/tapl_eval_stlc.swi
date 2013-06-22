@@ -4,6 +4,10 @@
 %
 % 2013_06_13 @suharahiromichi
 %
+%% 実行方法：
+%% ?- ['tapl_eval_stlc.swi'].
+%% ?- go31.
+%%
 
 eval(CTX, Tm, Tm2) :-
         call_until_fail(eval1(CTX), Tm, Tm2).        
