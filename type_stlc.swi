@@ -7,10 +7,6 @@
 %% ?- ['type_stlc.swi'].
 %% ?- go.
 %%
-%% Occurs Checkを一律には設定しない。
-%% :- set_prolog_flag(occures_check, true).
-%% コンテキストからの取り出しのときにだけ、チェックする。
-%%
 
 use_occurs_check(true).                     % occurs check をする場合。
 %use_occurs_check(false).                   % occurs check をする場合。
@@ -172,3 +168,16 @@ go75 :-                                     % fail
         write([S, U, T]).
 
 %% end
+
+%% 補足説明。
+%% Occurs Checkが省略時解釈の処理系の場合、あるいは、
+%% Occurs Checkを一律には設定する場合
+%% :- set_prolog_flag(occures_check, true).
+%% であっても、
+%% member述語をつかって「変数名：型」のペアを一度にとりだすのは適切ではない。
+%% なぜなら、occurs check でfailしたあと、スコープで隠蔽されている同名の別の変数
+%% にマッチしてしまうからだ。
+%% まず、名前の一致する「変数名：型」のペアを見つけてから、
+%% 型の一致をoccurs checkで判定するようにする。
+%% 型が一致しなかっときは、cutして、同名の別の変数を探しにいかないようにする。
+%%
