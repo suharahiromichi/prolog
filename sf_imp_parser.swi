@@ -1,0 +1,135 @@
+%% DCG Grammar
+%% ソフトウェアの基礎 Software Foundations
+%% ImpParser_J より。
+%% Prolog の DCG文法に書き直してみる。
+%% @suharahirimichi 2013_09_01
+
+%% SFのパーサコンビネータと比べてわかったこと：
+%% 文法がそのままプログラムになっていて解りやすい。
+%%
+%% しかし、以下の問題がある、
+%% (1) 空白を削除してくれない。
+%% (2) 再帰下降に忠実なので、左再帰にできず、右結合になってしまう。
+%% これは、SFと同様に、一旦リストで取り出してfold_rightすればよい。
+%% (3) 二項演算子で、演算子の解析に失敗すると、
+%% 第一引数をやり直してしまう（バックトラックが不要に深い）。
+%% 
+%% (1)(2)(3)とも、対策はあるが、DCG文法の単純さを犠牲にする。
+
+aexpsample("x-1-2-3-4-5").
+%aexpsample("y+1+2-y*6+3").
+%aexpsample("(x+1)*y").
+%aexpsample("(x+1)").
+%aexpsample("x").
+%aexpsample("1").
+
+bexpsample("FALSE").
+bexpsample("x==y+1+2-y*6+3").
+
+codesample("IFx==y+1+2-y*6+3THENx:=x*1;y:=0ELSESKIPEND").
+codesample("SKIP;z:=x*y*(x*x);WHILEx==xDOIFz<=z*z&&notx==2THENx:=z;y:=zELSESKIPEND;SKIPEND;x:=z").
+%codesample("IFx==y+1+2-y*6+3THENSKIPELSESKIPEND").
+%codesample("IFFALSETHENSKIPELSESKIPEND").
+%codesample("x:=x*1;y:=0").
+
+go1 :-
+        aexpsample(TEXT),
+        phrase(parseAExp(X), TEXT, []),
+        writeln(X).
+
+go2 :-
+        bexpsample(TEXT),
+        phrase(parseBExp(X), TEXT, []),
+        writeln(X).
+
+go :-
+        codesample(TEXT),
+        phrase(parseSequencedCommand(X), TEXT, []),
+        writeln(X).
+
+parseIdentifier(x) --> "x".
+parseIdentifier(y) --> "y".
+parseIdentifier(z) --> "z".
+
+parseNumber(N, [C|Rest], Rest) :-           % Prolog述語！
+        name(N, [C]), !,
+        number(N).
+
+parsePrimaryExp(aid(I)) -->
+        parseIdentifier(I).
+parsePrimaryExp(anum(N)) -->
+        parseNumber(N).
+parsePrimaryExp(E) -->
+        "(", parseSumExp(E), ")".
+
+parseProductExp(mult(E1, E2)) -->
+        parsePrimaryExp(E1),
+        "*",
+        parseProductExp(E2).                % 右は繰り返し（右結合になる）。
+parseProductExp(E1) -->
+        parsePrimaryExp(E1).
+
+parseSumExp(aplus(E1, E2)) -->
+        parseProductExp(E1),
+        "+",
+        parseSumExp(E2).                    % 右は繰り返し（右結合になる）。
+parseSumExp(aminus(E1, E2)) -->
+        parseProductExp(E1),
+        "-",
+        parseSumExp(E2).                    % 右は繰り返し（右結合になる）。
+parseSumExp(E1) -->
+        parseProductExp(E1).
+
+parseAExp(E) -->
+        parseSumExp(E).
+
+parseAtomicExp(true) --> "TRUE".
+parseAtomicExp(false) --> "FALSE".
+parseAtomicExp(not(E)) -->
+        "not", parseAtomicExp(E).
+parseAtomicExp(E) -->
+        "(", parseConjunctionExp(E), ")".
+parseAtomicExp(beq(E1, E2)) -->
+        parseProductExp(E1),
+        "==",
+        parseAExp(E2).
+parseAtomicExp(ble(E1, E2)) -->
+        parseProductExp(E1),
+        "<=",
+        parseAExp(E2).
+parseAtomicExp(E1) -->
+        parseProductExp(E1).
+
+parseConjunctionExp(and(E1, E2)) -->
+        parseAtomicExp(E1),
+        "&&",
+        parseConjunctionExp(E2).            % 右は繰り返し。
+parseConjunctionExp(E1) -->
+        parseAtomicExp(E1).
+
+parseBExp(E) --> parseConjunctionExp(E).
+
+parseSimpleCommand(skip) -->
+        "SKIP".
+parseSimpleCommand(if_then_else(E, C1, C2)) -->
+        "IF", parseBExp(E),
+        "THEN", parseSequencedCommand(C1),
+        "ELSE", parseSequencedCommand(C2),
+        "END".
+parseSimpleCommand(while_do(E, C)) -->
+        "WHILE", parseBExp(E),
+        "DO", parseSequencedCommand(C),
+        "END".
+parseSimpleCommand(assign(I, E)) -->
+        parseIdentifier(I),
+        ":=",
+        parseAExp(E).
+
+parseSequencedCommand(seq(C1, C2)) -->
+        parseSimpleCommand(C1),
+        ";",
+        parseSequencedCommand(C2).
+parseSequencedCommand(C1) -->
+        parseSimpleCommand(C1).
+
+%% end.
