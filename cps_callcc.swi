@@ -1,0 +1,165 @@
+%% CPSからcall/ccへ
+%% practical-scheme.net/wiliki/wiliki.cgi?Scheme%3A使いたい人のための継続入門
+%%
+%% @suharahiromichi
+%% 2013_12_22
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% fact/cps
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% (define (fact/cps n cont)
+%%  (if (= n 0)
+%%      (cont 1)
+%%      (fact/cps (- n 1) (lambda (a) (cont (* n a))))))
+%%
+%% (fact/cps 10 (lambda (a) (* 2 a)))
+%%
+fact_cps1(0, CONT, R) :- !,
+        call(CONT, 1, R).
+fact_cps1(N, CONT, R) :-
+        N1 is N - 1,
+        fact_cps(N1, p(CONT, N), R).
+p(CONT, N, A, R) :-
+        R1 is N * A,
+        call(CONT, R1, R).
+go0(R) :-
+        fact_cps1(10, t2, R).
+%%  go0(X). X = 7257600.
+                  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% call-with-procedure
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% lambda式からprocedureを生成し、procにprocedureを渡して呼び出す
+%% ;; call-with-procedureの実装
+%% (define (call-with-procedure lambda-expr proc)
+%%   (proc lambda-expr))
+%%
+call_with_procedure(EXP, PROC) :-
+        call(PROC, EXP).
+
+t2(N, R) :-
+        R is N * 2.
+
+fact(0, 1) :- !.
+fact(N, N2) :-
+        N1 is N - 1,
+        fact(N1, N3),
+        N2 is N * N3.
+
+%%
+%% 例えばこんな風に使えるだろう。
+%% ;; (* 2 (fact 10))
+%% (call-with-procedure (lambda (a) (* 2 a)) (lambda (p) (p (fact 10))))
+%%
+p1(R, P) :-
+        fact(10, R1),
+        call(P, R1, R).
+go1(R) :-
+        call_with_procedure(t2, p1(R)).
+%% go1(X). X = 2 * fact(10) = 7257600
+
+%%
+%% もちろん、こんな風に渡されたprocedureそのものを返してもいいし、
+%% ;; 継続手続きを返すのみ
+%% (call-with-procedure (lambda (a) (* 2 a)) (lambda (p) p))
+%%
+%%go2(N, R) :-
+%%        call_with_procedure(t2(N, R), call).
+%%
+p2(N, R, P) :-
+        call(P, N, R).
+go2(N, R) :-
+        call_with_procedure(t2, p2(N, R)).
+%% go2(2, X). X = 4.
+
+%%
+%% 新たに関数合成したものを返してもいい。
+%% 
+%% ;; 継続手続きを関数合成して、出来た関数を返す。
+%% (call-with-procedure (lambda (a) (* 2 a)) (lambda (p) (compose p p)))
+%%
+p3(N, R, P) :-
+        call(P, N, R1),
+        call(P, R1, R).
+go3(N, R) :-
+        call_with_procedure(t2, p3(N, R)).
+%% go3(2, X). X = 8.
+
+%%
+%% 渡されたprocedureを手続きとして使わなければならない法などないのだ。
+%% 単にリストにして返すことだって一向にさしつかえないし、
+%% ;; 継続手続きをリストにして返す。
+%% (call-with-procedure (lambda (a) (* 2 a)) (lambda (p) (list p p)))
+%%
+p4(N, [R, R], P) :-
+        call(P, N, R).
+go4(N, R) :-
+        call_with_procedure(t2, p4(N, R)).
+%% go4(2, X). X = [4, 4].
+
+%%
+%% それどころか、そもそも引数を使わなくたって別に文句を言われる筋合いはない。
+%% ;; 継続手続きを使わない
+%% (call-with-procedure (lambda (a) (* 2 a)) (lambda (p) "Hello World!"))
+%% これはcall-with-input-fileやcall-with-output-fileでも言えることで、
+%% 渡されたinやoutなどのポートを使わなくたって一向に構わない。 
+%%
+p5('Hello World', _).
+go5(R) :-
+        call_with_procedure(t2, p5(R)).
+%% go5(X). X = 'Hello World'.
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% call-with-continuation-procedure
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% call-with-continuation-procedure
+%% では、もう一歩進めてcall-with-continuation-procedureを定義してみよう。
+%%
+%% ;; call-with-continuation-procedureの定義
+%% (define (call-with-continuation-procedure cont proc)
+%%   (proc cont))
+%%
+call_with_continuation_procedure(CONT, PROC) :-
+        call(PROC, CONT).
+
+%%
+%% ;; (* 2 (fact 10))
+%% (call-with-continuation-procedure
+%%   (lambda (a) (* 2 a))
+%%   (lambda (cont) (cont (fact 10))))
+%%
+p11(R, C) :-
+        fact(10, R1),
+        call(C, R1, R).
+go11(R) :-
+        call_with_continuation_procedure(t2, p11(R)).
+%% go11(X). X = 2 * fact(10) = 7257600
+
+%%
+%% ;; fact/cpsをcall-with-continuation-procedureを使って定義する
+%% (define (fact/cps n cont)
+%%  (call-with-continuation-procedure cont (lambda (c) (c (fact n)))))
+%%
+p12(N, R, C) :-
+        fact(N, R1),
+        call(C, R1, R).
+fact_cps(N, CONT, R) :-
+        call_with_continuation_procedure(CONT, p12(N, R)).
+go12(N, R) :-
+        fact_cps(N, t2, R).
+%% go12(10, X). X = 7257600.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% call-with-current-continuation
+%% call/cc
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% call_with_continuation_procedure の第一引数をやめて、外側に持ってくる。
+%% fact_cps2(N, CONT, R) :-
+%%        call_with_continuation_continuation(p12(N, R1)),
+%%        t2(R1, R).
+
+%% END.
