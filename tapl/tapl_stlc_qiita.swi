@@ -158,17 +158,16 @@ typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
 ## getTypeFromContext
 
 getTypeFromContextは、変数の型を文脈(context)から取り出すことをおこなう。
-de Bruijn Indexの場合は、そのIndexによって一意に決まるため、
-Prologの「nth0」述語を（なにも考えずに）使用することができる。
-すなわち、
+de Bruijn Indexの場合は、Indexの値によって一意に決まるため、
+（なにも考えずに）nth0述語を使用することができる。
 nth0(I, CTX, TB)は、リストCTXのI番め（0から数える）をTBに返すもので、
-これ自体は決定的に動作するからである（注2)。
+決定的に動作する（注2)。
 
 Occurs Checkが必要になる理由につてては、「λx.x x」の実行例を参照のこと。
 */
 
 getTypeFromContext(CTX, I, TA) :-
-        nth0(I, CTX, TB),                   % ＊＊
+        nth0(I, CTX, TB),                   % (*1)
         unify_with_occurs_check(TA, TB).    % Occurs Check のもとで、TA=TBを実行する。
 
 /**
@@ -257,7 +256,7 @@ go241(Ty) :-
 */
 dbi(Exp, Dbi) :-
         empty_assoc(Env),
-        dbi(Exp, Env, 0, _, Dbi).
+        dbi(Exp, Env, 0, _, Dbi).           % (*1)
 /**
 dbi/4述語の引数の意味は以下のとおり。
 
@@ -269,7 +268,7 @@ dbi(+ラムダ式, +環境, +自由変数のインデックス，
 dbi(tm_abs(X:T, M), Env, F, F2, tm_abs(T, D)) :-
         atom(X), !,
         map_assoc(inc, Env, Env1),
-        put_assoc(X, Env1, 0, Env2),        % ＊＊
+        put_assoc(X, Env1, 0, Env2),        % (*1)
         assoc_to_values(Env2, L),
         max_list(L, F1),
         dbi(M, Env2, F1, F2, D).
@@ -300,7 +299,7 @@ inc(N, N1) :-
 ## 逆変換
 */
 rbi(Exp, Dbi) :-
-        rbi(Exp, 0, Dbi).
+        rbi(Exp, 0, Dbi).                   % (*1)
 
 rbi(tm_abs(T, M), I, tm_abs(X:T, M2)) :- !,
         I1 is I + 1,
@@ -376,16 +375,18 @@ go15 :-
 # 補足説明
 
 ## 注1
-ここでは、de Brujin Index を0から使用する。
-1からにする場合は、「＊＊」の2箇所の「0」を「1」にする。
+
+本資料では de Brujin Index を0から使用する。
+1からにする場合は、「(*1)」の箇所の「0」を「1」に変更する。
 
 ## 注2
-de Bruijn Indexではない一般のラムダ式の場合は、文脈で「変数名：型」のリストで保持している場合、
-変数Xの型TBを member(X:TB, CTX)で見つけることになる。
-しかし、この場合はスコープによって同じ名前の変数の意味が異なることがあり、
-memberは複数解を求める場合がある。しかし、その場合でも必ず一番外側の、
+
+de Bruijn Indexではない一般のラムダ式の場合は、文脈を「変数名：型」のリストで保持している場合、
+変数Xの型TBをmember述語を使ってで見つけることになる。member(X:TB, CTX)。
+一般のラムダ式の場合は、同じ名前の変数が存在しスコープによっての意味が異なる。
+このとき、memberは複数解を求めてしまう。しかし、その場合でも必ず一番外側の、
 つまり最初に見つけたものを使わなければならない。
-つまり、member述語の非決定性を殺す必要があり、そこに、cutオペレータ入れる必要がある。
+member述語の非決定性を殺す必要があり、cutオペレータ入れる必要がある。
 
 ## 課題
 
