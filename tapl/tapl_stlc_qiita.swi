@@ -135,7 +135,7 @@ typeof(+文脈, +式, ?型)
 
 型検査をおこなうtypeof/3は、TAPL(参考文献1.)の10.3節をそのまま移しただけである。
 ただし、もとのプログラムにあるエラー時の処理はおこなわず、
-結果として実行が「fail」するようにしている。
+結果として実行が「失敗」するようにしている。
 */
 
 typeof(CTX, tm_var(I), T) :-
@@ -188,7 +188,6 @@ test(Tm, Ty) :-
 ### 型付けできない例
 
 型付けできないことで有名な例、「λx.x x」 である。
-型付けできないのが正しいので、「失敗」で終了する。
 */
 go23 :-
         test(tm_abs(x,
@@ -196,6 +195,8 @@ go23 :-
              _).
 
 /**
+型付けできないのが正しいので、これは「失敗」で終了する。
+
 しかし、getTypeFromContextのOccurs Checkを外す(unify_with_occurs_check(TA, TB)
 を TA = TBに書き換える)と間違った型を返す。これは以下の理由による。
 
@@ -324,7 +325,7 @@ rbi_list([Tm|Tms], I, [Tm2|Tm2s]) :-
         rbi_list(Tms, I, Tm2s).
 rbi_list([], _, []).
 
-/*
+/**
 ## テスト
 */
 test2(Tm) :-
@@ -332,7 +333,7 @@ test2(Tm) :-
         dbi(Tm, Dm), write(Dm), nl,
         rbi(Dm, Tm2), write(Tm2).
 
-/*
+/**
 ## sample コード
 */
 
