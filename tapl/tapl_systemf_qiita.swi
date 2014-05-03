@@ -160,11 +160,11 @@ typeof(CTX, tm_abs(Tm2), TyT1 -> TyT2) :-   % 型注釈のない場合
 typeof(CTX, tm_app(Tm1, Tm2), Ty12) :-
         typeof(CTX, Tm1, Ty11 -> Ty12),
         typeof(CTX, Tm2, Ty11).
-typeof(CTX, tm_tabs(TyX, T2), ty_all(TyX, TyT2)) :-
+typeof(CTX, tm_tabs(T2), ty_all(TyT2)) :-
         typeof([tyvarbind|CTX], T2, TyT2).
-typeof(CTX, tm_tapp(T1, TyT22), 
-       typeof(CTX, T1, ty_all(_, TyT12)),
-       typeSubsTop(TyT2, TyT12, TyT22).
+typeof(CTX, typeof(CTX, tm_tapp(T1, TyT2), TyT22) :-
+        typeof(CTX, T1, ty_all(TyT12)),
+        typeSubsTop(TyT2, TyT12, TyT22).
 typeof(CTX, tm_true, ty_Bool).        
 typeof(CTX, tm_false, ty_Bool).
 typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
@@ -178,7 +178,7 @@ typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
 getTypeFromContextは、変数の型を文脈(context)から取り出すことをおこなう。
 de Bruijn Indexの場合は、Indexの値によって一意に決まるため、
 （なにも考えずに）nth0述語を使用することができる。
-Occurs Checkが必要になる理由につてては、STLC の実行例を参照のこと。
+Occurs Checkが必要になる理由につてては、(文献5.)の実行例を参照のこと。
 */
 
 getTypeFromContext(CTX, I, TA) :-
@@ -223,7 +223,7 @@ typeSubst_onmap(TS, J, X, T2) :-
 typeSubst_onmap(_, _, X, ty_var(X)).
 
 gosu :-
-        TT = ty_all(ty_var(3), ty_var(3) -> ty_var(0 )),
+        TT = ty_all(ty_var(3) -> ty_var(0 )),
         writeln(TT),
         typeSubst(ty_Bool, 2, TT, T2),      % indexの2をty_Boolにする。
         writeln(T2).
@@ -236,10 +236,10 @@ tymap(ONVAR, C, T1->T2, T12->T22) :- !,     % ty_arr
         tymap(ONVAR, C, T2, T22).
 tymap(ONVAR, C, ty_var(X), T2) :- !,
         call(ONVAR, C, X, T2).
-tymap(ONVAR, C, ty_all(Tx, T2), ty_all(Tx, T22)) :- !,
+tymap(ONVAR, C, ty_all(T2), ty_all(T22)) :- !,
         C1 is C + 1,
         tymap(ONVAR, C1, T2, T22).
-tymap(ONVAR, C, ty_some(Tx, T2), ty_some(Tx, T22)) :- !,
+tymap(ONVAR, C, ty_some(T2), ty_some(T22)) :- !,
         C1 is C + 1,
         tymap(ONVAR, C1, T2, T22).
 tymap(_, _, T, T).                          % 型定数
@@ -248,14 +248,50 @@ tymap(_, _, T, T).                          % 型定数
 ## テスト
 */
 test(Tm, Ty) :-
+        write(Tm), nl,
         dbi(Tm, Dm), write(Dm), nl,
         rbi(Dm, Tm2), write(Tm2), nl, !,
         typeof(Dm, Ty),
-        write(Ty).
+        write(Ty), nl.
 
 /**
 ## 実行例
 */
+
+/**
+### TAPLの例
+*/
+
+go20 :-                                    
+%        T = tm_tabs(tm_abs(ty_var(0)->ty_var(0),tm_abs(ty_var(1),tm_app(tm_var(1),tm_var(0 ))))))),
+         T = tm_tabs(tm_abs(ty_var(0)->ty_var(0),tm_abs(ty_var(0),tm_app(tm_var(1),tm_var(0 ))))), % これは動く。全部ty_var(0)
+         typeof(T, Ty),
+         write(Ty), nl.
+
+go21 :-                                     % 無限ループ
+        spy(typeof),
+        test(tm_tabs(x,
+                     tm_abs(f : ty_var(x) -> ty_var(x),
+                            tm_abs(a : ty_var(x),
+                                   tm_app(tm_var(f), tm_var(a))))),
+             X1),
+        rbi(X1, X),
+        writeln(X).
+        
+
+go22 :-                                     % 無限ループ
+        spy(typeof),
+        go22(X),
+        writeln(X).
+
+go22(X) :-
+        test(tm_tabs(x,
+                     tm_abs(f : ty_var(x) -> ty_var(x),
+                            tm_abs(a : ty_var(x),
+                                   tm_app(tm_var(f),
+                                          tm_app(tm_var(f), tm_var(a)))))),
+             X).
+
 
 /**
 ### 型付けできない例
@@ -393,14 +429,14 @@ rbi(tm_var(N), I, tm_var(X)) :-
         N =< I, !,                          % bound
         N1 is I - N,
         atom_concat(x, N1, X).
-rbi(tm_tvar(N), I, tm_tvar(X)) :-
+rbi(ty_var(N), I, ty_var(X)) :-
         integer(N),
         N =< I, !,                          % bound
         N1 is I - N,
         atom_concat(x, N1, X).
 rbi(tm_var(N), I, tm_var(X)) :- !,
         atom_concat(x, N, X).               % free
-rbi(tm_tvar(N), I, tm_tvar(X)) :- !,
+rbi(ty_var(N), I, ty_var(X)) :- !,
         atom_concat(x, N, X).               % free
 rbi(Tm, I, Tm2) :-
         Tm =.. [Func|Tms], !,
@@ -429,7 +465,7 @@ test2(Tm) :-
 */
 go1 :-
         test2(tm_tabs(x,
-                      tm_abs(f : x -> x,
+                      tm_abs(f : ty_var(x) -> ty_var(x),
                              tm_abs(a : ty_var(x),
                                     tm_app(tm_var(f),
                                            tm_app(tm_var(f), tm_var(a))))))).
@@ -475,7 +511,7 @@ go15 :-
 ## 注1
 
 本資料では de Bruijn Index を0から使用する。
-1からにする場合は、STLCの補足説明を参照のこと。
+1からにする場合は、(文献5.) の補足説明を参照のこと。
 
 */
 
@@ -486,6 +522,7 @@ go15 :-
 2. Benjamin C. Pierce他、梅村他訳「ソフトウエアの基礎」、http://proofcafe.org/sf/
 3. SWI-Prolog、http://www.swi-prolog.org/
 4. GNU Prolog、http://www.gprolog.org/
+5. Prologによる、単純型付きラムダ式の型検査と型推論について、http://qiita.com/suharahiromichi/items/6d944725636c6cac7400
 */  
                                                               
 /* end */
