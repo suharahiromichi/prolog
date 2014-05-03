@@ -263,10 +263,48 @@ test(Tm, Ty) :-
 */
 
 go20 :-                                    
-%        T = tm_tabs(tm_abs(ty_var(0)->ty_var(0),tm_abs(ty_var(1),tm_app(tm_var(1),tm_var(0 ))))))),
-         T = tm_tabs(tm_abs(ty_var(0)->ty_var(0),tm_abs(ty_var(0),tm_app(tm_var(1),tm_var(0 ))))), % これは動く。全部ty_var(0)
+         T = tm_tabs(tm_abs(ty_var(0)->ty_var(0),tm_abs(ty_var(1),tm_app(tm_var(1),tm_var(0 ))))),
+%        T = tm_tabs(tm_abs(ty_var(0)->ty_var(0),tm_abs(ty_var(0),tm_app(tm_var(1),tm_var(0 ))))), % これは動く。全部ty_var(0)
          typeof(T, Ty),
          write(Ty), nl.
+
+/**
+  λX.λf:X->X.λx.f x : ∀X.(X->X)->X->X が正しい。
+
+```
+  [debug]  ?- go20.
+   Call: (6) go20 ? creep
+   Call: (7) _G465=tm_tabs(tm_abs(ty_var(0)->ty_var(0), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0))))) ? creep
+   Exit: (7) tm_tabs(tm_abs(ty_var(0)->ty_var(0), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0)))))=
+             tm_tabs(tm_abs(ty_var(0)->ty_var(0), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0))))) ? creep
+   Call: (7) typeof(tm_tabs(tm_abs(ty_var(0)->ty_var(0), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0))))), _G463) ? creep
+   Call: (8) typeof([], tm_tabs(tm_abs(ty_var(0)->ty_var(0), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0))))), _G464) ? creep
+   Call: (9) typeof([tyvarbind], tm_abs(ty_var(0)->ty_var(0), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0)))), _G458) ? creep
+   Call: (10) typeof([varbind(ty_var(0)->ty_var(0)), tyvarbind], tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0))), _G477) ? creep
+   Call: (11) typeof([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], tm_app(tm_var(1), tm_var(0)), _G485) ? creep
+   Call: (12) typeof([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], tm_var(1), _G479->_G480) ? creep
+   Call: (13) getTypeFromContext([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], 1, _G479->_G480) ? creep
+   Call: (14) lists:nth0(1, [varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], varbind(_G482)) ? creep
+   Exit: (14) lists:nth0(1, [varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], varbind(ty_var(0)->ty_var(0))) ? creep
+   Call: (14) unify_with_occurs_check(_G479->_G480, ty_var(0)->ty_var(0)) ? creep
+   Exit: (14) unify_with_occurs_check(ty_var(0)->ty_var(0), ty_var(0)->ty_var(0)) ? creep
+   Exit: (13) getTypeFromContext([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], 1, ty_var(0)->ty_var(0)) ? creep
+   Exit: (12) typeof([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], tm_var(1), ty_var(0)->ty_var(0)) ? creep
+
+  f : X->X だが、Xはty_var(0)。。。これは正しくないようにみえる。
+
+  ついで、x の型が X かどうかを調べようとして、エラーになる。ty_var(0)とty_var(1)を比較して失敗する。
+
+   Call: (12) typeof([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], tm_var(0), ty_var(0)) ? creep
+   Call: (13) getTypeFromContext([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], 0, ty_var(0)) ? creep
+   Call: (14) lists:nth0(0, [varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], varbind(_G484)) ? creep
+   Exit: (14) lists:nth0(0, [varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], varbind(ty_var(1))) ? creep
+   Call: (14) unify_with_occurs_check(ty_var(0), ty_var(1)) ? creep
+   Fail: (14) unify_with_occurs_check(ty_var(0), ty_var(1)) ? creep
+   Redo: (13) getTypeFromContext([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], 0, ty_var(0)) ? creep
+   Fail: (13) getTypeFromContext([varbind(ty_var(1)), varbind(ty_var(0)->ty_var(0)), tyvarbind], 0, ty_var(0)) ? creep
+```
+*/
 
 go21 :-                                     % 無限ループ
         spy(typeof),
