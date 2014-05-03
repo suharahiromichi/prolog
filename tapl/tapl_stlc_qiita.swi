@@ -22,7 +22,7 @@ https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_stlc_qiita.swi
 ?- go24.
 ```
 
-Prolog処理系はSWI-Prolog (5.10.4)、および、GNU Prolog (1.3.0) で動作を確認している。
+Prolog処理系はSWI-Prolog (5.10.4)で動作を確認している。GNU Prologでは未確認である。
 
 省略時解釈（ディフォルト）のとおり Occurs Check のオプションは off のままとする。
 ただし、途中の1箇所において、unify_with_occurs_check述語
@@ -139,7 +139,16 @@ typeof(+文脈, +式, ?型)
 ```
 
 型検査をおこなうtypeof/3は、TAPL(参考文献1.)の10.3節 **型検査** をそのまま移しただけである。
-ただし、もとのプログラムにあるエラー時の処理はおこなわず、
+ただし、tm_absに型注釈（型修飾）のない場合も許している。
+このとき、ラムダ変数の型を新しい（未束縛の）Prologの変数で表し
+文脈に追加している。 この変数はtypeofの実行にともなって、
+束縛される（型が決まる）ことが期待される。
+もし、型が決まらないなら、未束縛のProlog変数のまま出力される。  
+
+この方法によれば、全称型の型変数をPrologの変数で表す
+ことで、System Fの型検査や型推論に拡張することができる。
+  
+また、もとのプログラムにあるエラー時の処理はおこなわず、
 結果として実行が「失敗」するようにしている。
 */
 
@@ -239,7 +248,7 @@ go24(Ty) :-
         test(Tm, Ty).                       % 型推論
 
 /**
-前の例で、型修飾がない場合。式は直接de Bruijn Index で与えている。
+前の例で、型注釈がない場合。式は直接de Bruijn Index で与えている。
   */
 go241 :-
         Tm = tm_abs(ty_Bool, tm_abs(tm_app(tm_var(0 ),
@@ -256,6 +265,9 @@ go241(Ty) :-
 
 /**
 # de Bruijn Index 変換
+
+以下では、通常のラムダ式からde Bruijn Indexに変換する処理、
+および、逆変換する処理について説明する。
 */
 /**
 ## 正変換
