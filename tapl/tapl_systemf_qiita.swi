@@ -1,0 +1,491 @@
+/**
+Prologによる、System Fの型検査と型推論について
+========
+
+2014/05/05 @suharahiromichi
+
+
+単純型付きラムダ式に全称型（と存在型）を追加したSystem F
+の型検査のプログラムをPrologで実装してみた。
+そのうえで、同じプログラムが「Prologの双方向性」によって、
+型推論もできることを示す。
+
+
+この文章のソースコードは以下にあります。
+  
+https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_systemf_qiita.swi  
+
+使い方の例：
+  
+```
+% swipl.
+?- ['tapl_systemf_qitta.swi'].
+?- go24.
+```
+
+Prolog処理系はSWI-Prolog (5.10.4)で動作を確認している。GNU Prologでは未確認である。
+
+省略時解釈（ディフォルト）のとおり Occurs Check のオプションは off のままとする。
+ただし、途中の1箇所において、unify_with_occurs_check述語
+で、Occurs Check 付きの一致判定「=」をおこなう。
+*/
+
+/**
+# ここで使う記法について
+
+型検査にはde Bruijn Index (注1) を使用するが、わかりやすさから、
+一般的なラムダ式をde Bruijn Indexに変換して使う。
+
+また、どちらの場合も、Prologで扱える前置記法 f(x,g(y,z)) の形式を使用する。
+de Bruijn Index に変換するコードは後半に示す。
+*/
+
+/**
+## 記法の一覧
+
+```
+  λx.y     tm_abs(x, y)       型注釈のないλ抽象
+  λx:T.y   tm_abs(x:T, y)     型注釈のあるλ抽象 (「:」は中置記法)
+  f x      tm_app(f, x)       適用
+  x        tm_var(x)          変数の参照
+  True     tm_true            定数
+  False    tm_false           定数
+  λX.y     tm_tabs(T, y)      型のλ抽象
+  y [Bool] tm_tapp(y, ty_bool) 型の適用
+  ∀x.y    ty_all(x, y)       全称型
+  ∃x.y    ty_some(x, y)      存在型
+  T1→T2   t1->t2             関数型 (ty_arrの中置記法)
+  X        ty_var(x)          型変数
+  Bool     ty_bool            型定数
+```
+
+## 変換の例
+
+### 一般的な記法
+
+以下に全称型を含む一般的な記法を示す。
+```
+(1) (λX. λf:X→X. λa:X. f (f a))
+
+(2) ∀X. (X→X)→X→X （(1)の型）
+
+(3) double [Bool→Bool]
+```
+
+### ここで使う記法
+
+ここで使う記法は、ぞれぞれ次のようになる。
+```
+(1)
+tm_tabs(x,
+  tm_abs(f : x -> x,
+    tm_abs(a : x,
+       tm_app(f, tm_app(f, a)))))
+
+(2)
+ty_all(x, (x->x)->x->x)
+
+(3)
+tm_tapp(double, ty_Bool -> ty_Bool).
+```
+
+### ここで使う記法(de Bruijn Index)
+
+```
+(1)
+tm_tabs(
+  tm_abs(x -> x,
+    tm_abs(x,
+       tm_app(1, tm_app(1, 0 )))))
+
+(2)
+ty_all((ty_var(0) -> ty_var(0)) -> ty_var(0) -> ty_var(0 )))))
+
+(3)
+tm_tapp(double, ty_Bool -> ty_Bool).
+```
+
+*/  
+
+/**
+型の注釈で使う「:」と、そのなかでの関数型を示す「->」は、「,」より優先度が高いものとする。
+また、「->」は右結合で、「:」より優先度が高いものとする。
+*/
+  
+:- op(600, xfx, :).                         % 例、x : T
+:- op(500, xfy, ->).                        % 例、Tx->Ty
+
+/**
+# 型検査のプログラム
+
+## typeof
+*/
+/**
+typeof/2述語の引数の意味を以下に示す。
+式はde Bruijn Indexで与える。
+引数の前の「+」は入力、「-」は出力、「?」はそのどちらにもなることを示す。
+
+つまり、第2引数の「型」は、入力でも出力でもよく、
+入力なら型検査、出力なら型推論の意味になる。
+「Prologの双方向性」が利用できる例である。
+
+```
+typeof(+式, ?型)
+```                                                             
+*/
+
+typeof(E, T) :-
+        typeof([], E, T).
+  
+/**
+typeof/3述語の引数の意味を以下に示す。
+  
+```
+typeof(+文脈, +式, ?型)
+```
+
+型検査をおこなうtypeof/3は、TAPL(参考文献1.)の25.5節 **型付け** をそのまま移しただけである。
+  
+また、もとのプログラムにあるエラー時の処理はおこなわず、
+結果として実行が「失敗」するようにしている。
+*/
+
+typeof(CTX, tm_var(I), T) :-
+        getTypeFromContext(CTX, I, T).
+typeof(CTX, tm_abs(TyT1, Tm2), TyT1 -> TyT22) :- % 型注釈のある場合
+        typeof([varbind(TyT1)|CTX], Tm2, TyT2),
+        typeShift(-1, TyT2, TyT22).
+typeof(CTX, tm_abs(Tm2), TyT1 -> TyT2) :-   % 型注釈のない場合
+        typeof([varbind(TyT1)|CTX], Tm2, TyT2).
+typeof(CTX, tm_app(Tm1, Tm2), Ty12) :-
+        typeof(CTX, Tm1, Ty11 -> Ty12),
+        typeof(CTX, Tm2, Ty11).
+typeof(CTX, tm_tabs(TyX, T2), ty_all(TyX, TyT2)) :-
+        typeof([tyvarbind|CTX], T2, TyT2).
+typeof(CTX, tm_tapp(T1, TyT22), 
+       typeof(CTX, T1, ty_all(_, TyT12)),
+       typeSubsTop(TyT2, TyT12, TyT22).
+typeof(CTX, tm_true, ty_Bool).        
+typeof(CTX, tm_false, ty_Bool).
+typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
+        typeof(CTX, T1, ty_Bool),
+        typeof(CTX, T2, TyT12),
+        typeof(CTX, T3, TyT12).
+
+/**
+## getTypeFromContext
+
+getTypeFromContextは、変数の型を文脈(context)から取り出すことをおこなう。
+de Bruijn Indexの場合は、Indexの値によって一意に決まるため、
+（なにも考えずに）nth0述語を使用することができる。
+Occurs Checkが必要になる理由につてては、STLC の実行例を参照のこと。
+*/
+
+getTypeFromContext(CTX, I, TA) :-
+        nth0(I, CTX, varbind(TB)),          % 項の変数で、型はTB。
+        unify_with_occurs_check(TA, TB).    % Occurs Check のもとで、TA=TBを実行する。
+getTypeFromContext(CTX, I, tyvarbind) :-
+        nth0(I, CTX, tyvarbind).            % 型変数である。
+
+/**
+## typeShift
+  */
+typeShift(D, T, T2) :-                      % ↑D,0,T = T2
+        typeShiftAbove(D, 0, T, T2).
+typeShiftAbove(D, C, T, T2) :-              % ↑D,C,T = T2
+        tymap(typeShiftAbove_onmap(D), C, T, T2).
+
+typeShiftAbove_onmap(D, C, X, ty_var(X2)) :-
+        X >= C, !,
+        X2 is X + D.
+typeShiftAbove_onmap(_, _, X, ty_var(X)).
+
+gosh :-
+        T = ty_all(ty_var(3), ty_var(3) -> ty_var(0 )),
+        writeln(T),
+        typeShiftAbove(10, 1, T, T2),       % indexの2以上にたいして10シフトする。
+        writeln(T2).
+
+/**
+## typeSubst
+  */
+typeSubstTop(TS, TT, T2) :-
+        typeShift(1, TS, TS1),
+        typeSubst(TS1, 0, TT, T1),
+        typeShift(-1, T1, T2).
+
+typeSubst(TS, J, TT, T2) :-                 % [J→TS]TT
+        tymap(typeSubst_onmap(TS), J, TT, T2).
+
+typeSubst_onmap(TS, J, X, T2) :-
+        X == J, !,
+        typeShift(J, TS, T2).
+typeSubst_onmap(_, _, X, ty_var(X)).
+
+gosu :-
+        TT = ty_all(ty_var(3), ty_var(3) -> ty_var(0 )),
+        writeln(TT),
+        typeSubst(ty_Bool, 2, TT, T2),      % indexの2をty_Boolにする。
+        writeln(T2).
+
+/**
+## typeShift と typeSubst の共通述語
+  */
+tymap(ONVAR, C, T1->T2, T12->T22) :- !,     % ty_arr
+        tymap(ONVAR, C, T1, T12),
+        tymap(ONVAR, C, T2, T22).
+tymap(ONVAR, C, ty_var(X), T2) :- !,
+        call(ONVAR, C, X, T2).
+tymap(ONVAR, C, ty_all(Tx, T2), ty_all(Tx, T22)) :- !,
+        C1 is C + 1,
+        tymap(ONVAR, C1, T2, T22).
+tymap(ONVAR, C, ty_some(Tx, T2), ty_some(Tx, T22)) :- !,
+        C1 is C + 1,
+        tymap(ONVAR, C1, T2, T22).
+tymap(_, _, T, T).                          % 型定数
+
+/**
+## テスト
+*/
+test(Tm, Ty) :-
+        dbi(Tm, Dm), write(Dm), nl,
+        rbi(Dm, Tm2), write(Tm2), nl, !,
+        typeof(Dm, Ty),
+        write(Ty).
+
+/**
+## 実行例
+*/
+
+/**
+### 型付けできない例
+
+型付けできないことで有名な例、「λx.x x」 である。
+*/
+go23 :-
+        test(tm_abs(x,
+                    tm_app(tm_var(x), tm_var(x))),
+             _).
+
+/**
+型付けできないのが正しいので、これは「失敗」で終了する。
+*/
+
+/**
+### ソフトウェアの基礎（文献2.) のサンプル
+
+これは型付けできる例である。
+  */
+go24 :-
+        Tm = tm_abs(a : ty_Bool,
+                    tm_abs(b : ty_Bool -> ty_Bool,
+                           tm_app(tm_var(b),
+                                  tm_app(tm_var(b), tm_var(a))))),
+        Ty = ty_Bool -> (ty_Bool -> ty_Bool) -> ty_Bool,
+        test(Tm, Ty).                       % 型検査
+
+go24(Ty) :-
+        Tm = tm_abs(a : ty_Bool,
+                    tm_abs(b : ty_Bool -> ty_Bool,
+                           tm_app(tm_var(b),
+                                  tm_app(tm_var(b), tm_var(a))))),
+        test(Tm, Ty).                       % 型推論
+
+/**
+前の例で、型注釈がない場合。式は直接de Bruijn Index で与えている。
+  */
+go241 :-
+        Tm = tm_abs(ty_Bool, tm_abs(tm_app(tm_var(0 ),
+                                           tm_app(tm_var(0 ),
+                                                  tm_var(1))))),
+        Ty = ty_Bool -> (ty_Bool -> ty_Bool) -> ty_Bool,
+        typeof(Tm, Ty).                     % 型検査
+
+go241(Ty) :-
+        Tm = tm_abs(ty_Bool, tm_abs(tm_app(tm_var(0 ),
+                                           tm_app(tm_var(0 ),
+                                                  tm_var(1))))),
+        typeof(Tm, Ty).                     % 型推論
+
+/**
+# de Bruijn Index 変換
+
+以下では、通常のラムダ式からde Bruijn Indexに変換する処理、
+および、逆変換する処理について説明する。
+*/
+/**
+## 正変換
+
+*/
+dbi(Exp, Dbi) :-
+        empty_assoc(Env),
+        dbi(Exp, Env, 0, _, Dbi).
+/**
+dbi/4述語の引数の意味は以下のとおり。
+
+```
+dbi(+ラムダ式, +環境, +自由変数のインデックス，
+    -自由変数の更新されたインデクス， -変換後の式)
+```
+*/
+dbi(tm_abs(X:T, M), Env, F, F3, tm_abs(T2, D)) :-
+        dbi(T, Env, F, F2, T2),
+        dbi_abs(X, M, Env, F2, F3, D).
+dbi(tm_abs(X, M), Env, F, F2, tm_abs(D)) :- !,
+        dbi_abs(X, M, Env, F, F2, D).
+dbi(tm_tabs(X, M), Env, F, F2, tm_tabs(D)) :- !,
+        dbi_abs(X, M, Env, F, F2, D).
+dbi_abs(X, M, Env, F, F2, D) :-             % tm_absとtm_tabsの共通述語
+        atom(X), !,
+        map_assoc(inc, Env, Env1),
+        put_assoc(X, Env1, 0, Env2),
+        assoc_to_values(Env2, L),
+        max_list(L, F1),
+        dbi(M, Env2, F1, F2, D).
+
+dbi(tm_var(X), Env, F, F, tm_var(N)) :-
+        atom(X),
+        get_assoc(X, Env, N), !.
+dbi(ty_var(X), Env, F, F, ty_var(N)) :-
+        atom(X),
+        get_assoc(X, Env, N), !.
+%% 本当の自由変数は、出現の順番にindexを更新する。
+%% ただし、同じ変数名が出現しても対応できない。
+dbi(tm_var(_), _, F, F1, tm_var(F1)) :- !,
+        F1 is F + 1.
+dbi(ty_var(_), _, F, F1, ty_var(F1)) :- !,
+        F1 is F + 1.
+
+%% tm_app, tm_tapp, tm_var その他の定数
+dbi(Tm, Env, F, F2, Tm2) :-
+        Tm =.. [Func|Tms], !,
+        dbi_list(Tms, Env, F, F2, Tm2s),
+        Tm2 =.. [Func|Tm2s].
+
+dbi_list([Tm|Tms], Env, F, F2, [Tm2|Tm2s]) :-
+        dbi(Tm, Env, F, F1, Tm2),
+        dbi_list(Tms, Env, F1, F2, Tm2s).
+dbi_list([], _, F, F, []).
+
+inc(N, N1) :-
+        N1 is N + 1.
+
+/**
+## 逆変換
+*/
+rbi(Exp, Dbi) :-
+        rbi(Exp, 0, Dbi).
+
+rbi(tm_abs(T, M), I, tm_abs(X:T, M2)) :- !,
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
+rbi(tm_abs(M), I, tm_abs(X, M2)) :- !,
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
+rbi(tm_tabs(M), I, tm_tabs(X, M2)) :- !,
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
+rbi(tm_var(N), I, tm_var(X)) :-
+        integer(N),
+        N =< I, !,                          % bound
+        N1 is I - N,
+        atom_concat(x, N1, X).
+rbi(tm_tvar(N), I, tm_tvar(X)) :-
+        integer(N),
+        N =< I, !,                          % bound
+        N1 is I - N,
+        atom_concat(x, N1, X).
+rbi(tm_var(N), I, tm_var(X)) :- !,
+        atom_concat(x, N, X).               % free
+rbi(tm_tvar(N), I, tm_tvar(X)) :- !,
+        atom_concat(x, N, X).               % free
+rbi(Tm, I, Tm2) :-
+        Tm =.. [Func|Tms], !,
+        rbi_list(Tms, I, Tm2s),
+        Tm2 =.. [Func|Tm2s].
+
+rbi_list([Tm|Tms], I, [Tm2|Tm2s]) :-
+        rbi(Tm, I, Tm2),
+        rbi_list(Tms, I, Tm2s).
+rbi_list([], _, []).
+
+/**
+## テスト
+*/
+test2(Tm) :-
+        write(Tm), nl,
+        dbi(Tm, Dm), write(Dm), nl,
+        rbi(Dm, Tm2), write(Tm2).
+
+/**
+## sample コード
+*/
+
+/**
+### TAPL p.271
+*/
+go1 :-
+        test2(tm_tabs(x,
+                      tm_abs(f : x -> x,
+                             tm_abs(a : ty_var(x),
+                                    tm_app(tm_var(f),
+                                           tm_app(tm_var(f), tm_var(a))))))).
+
+/**
+### TAPL 演習6.1.1 (STLC)
+*/
+go11 :-                                     % C0
+        test2(tm_abs(s, tm_abs(z, tm_var(z)))).
+go12 :-                                     % C2
+        test2(tm_abs(s, tm_abs(z,
+                                tm_app(tm_var(s), tm_app(tm_var(s), tm_var(z)))))).
+go13 :-                                     % plus
+        test2(tm_abs(m,
+                     tm_abs(n,
+                            tm_abs(s,
+                                   tm_abs(z,
+                                          tm_app(tm_var(m),
+                                                 tm_app(tm_var(s),
+                                                        tm_app(tm_app(tm_var(n), tm_var(s)),
+                                                               tm_var(z))))))))).
+
+/**
+### 型注釈のある場合 (STLC)
+*/
+go14 :-
+        Tm = tm_abs(a : ty_Bool,
+                    tm_abs(b : ty_Bool -> ty_Bool,
+                           tm_app(tm_var(b),
+                                  tm_app(tm_var(b), tm_var(a))))),
+        test2(Tm).
+
+/**                                                             
+### 自由変数のある場合 (STLC)
+*/
+go15 :-
+        test2(tm_app(tm_abs(s:_, tm_abs(z:_, tm_var(z))),
+                     tm_var(x))).
+
+/**
+# 補足説明
+
+## 注1
+
+本資料では de Bruijn Index を0から使用する。
+1からにする場合は、STLCの補足説明を参照のこと。
+
+*/
+
+/**
+# 参考文献
+
+1. Benjamin C. Pierce、住井 監訳「型システム入門 プログラミング言語と型の理論」オーム社
+2. Benjamin C. Pierce他、梅村他訳「ソフトウエアの基礎」、http://proofcafe.org/sf/
+3. SWI-Prolog、http://www.swi-prolog.org/
+4. GNU Prolog、http://www.gprolog.org/
+*/  
+                                                              
+/* end */
