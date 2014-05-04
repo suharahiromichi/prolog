@@ -52,6 +52,7 @@ de Bruijn Index に変換するコードは後半に示す。
   ∀x.y    ty_all(x, y)       全称型
   ∃x.y    ty_some(x, y)      存在型
   T1→T2   t1->t2             関数型 (ty_arrの中置記法)
+  T1 T2    ty_app(t1, t2)     型の適用、TAPLに記載がないが、追加した。
   X        ty_var(x)          型変数
   Bool     ty_bool            型定数
 ```
@@ -238,6 +239,9 @@ gosu :-
 tymap(ONVAR, C, T1->T2, T12->T22) :- !,     % ty_arr
         tymap(ONVAR, C, T1, T12),
         tymap(ONVAR, C, T2, T22).
+tymap(ONVAR, C, ty_app(T1, T2), ty_app(T12, T22)) :- !, % TAPLに記載がないが、追加した。
+        tymap(ONVAR, C, T1, T12),
+        tymap(ONVAR, C, T2, T22).
 tymap(ONVAR, C, ty_var(X), T2) :- !,
         call(ONVAR, C, X, T2).
 tymap(ONVAR, C, ty_all(T2), ty_all(T22)) :- !,
@@ -275,7 +279,7 @@ go0 :-                                      % λX.λx:X.x : ∀X.X->X
 
 go1 :-                                      % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
                                             % λ λ0->0 λ1 1 0  : ∀(0->0 )->0->0
-%      spy(typeof),
+%       spy(typeof),
         T = tm_tabs(tm_abs(ty_var(0 )->ty_var(0 ), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0 ))))),
         typeof(T, Ty),
         write(Ty), nl.
@@ -303,7 +307,7 @@ go2 :-                                      % λX.λf:X-X.λx:X.f f x : ∀X.(X-
         rbi(X1, X),
         writeln(X).
 
-g3 :-                        % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->Bool->Bool
+go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->Bool->Bool
         test(tm_tapp(
                      tm_tabs(x,
                              tm_abs(f : ty_var(x) -> ty_var(x),
@@ -312,7 +316,30 @@ g3 :-                        % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->
                                                   tm_app(tm_var(f), tm_var(a)))))),
                      ty_bool),
              X1),
-        writeln(X1).
+        rbi(X1, X),
+        writeln(X).
+
+go4 :-       % λX.λY.λL.λm:(L X -> L Y).m : ∀X.∀Y.∀L.((L X -> L Y) -> (L X -> L Y))
+        test(tm_tabs(x,
+                     tm_tabs(y,
+                             tm_tabs(l,
+                                     tm_abs(m : ty_app(ty_var(l), ty_var(x)) -> ty_app(ty_var(l), ty_var(y)),
+                                            tm_var(m))))),
+             X1),
+        rbi(X1, X),
+        writeln(X).
+
+go5 :-       % λX.λY.λL.λm:(L X -> L Y).λp:(L X).m p : ∀X.∀Y.∀L.((L X -> L Y) -> L X -> L Y)
+%       spy(typeof),
+        test(tm_tabs(x,
+                     tm_tabs(y,
+                             tm_tabs(l,
+                                     tm_abs(m : ty_app(ty_var(l), ty_var(x)) -> ty_app(ty_var(l), ty_var(y)),
+                                            tm_abs(p : ty_app(ty_var(l), ty_var(x)),
+                                                   tm_app(tm_var(m), tm_var(p))))))),
+             X1),
+        rbi(X1, X),
+        writeln(X).
 
 /**
 # de Bruijn Index 変換
