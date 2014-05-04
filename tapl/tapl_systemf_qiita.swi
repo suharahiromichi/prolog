@@ -4,12 +4,9 @@ Prologによる、System Fの型検査と型推論について
 
 2014/05/05 @suharahiromichi
 
-
 単純型付きラムダ式に全称型（と存在型）を追加したSystem F
-の型検査のプログラムをPrologで実装してみた。
-そのうえで、同じプログラムが「Prologの双方向性」によって、
-型推論もできることを示す。
-
+の型付けのプログラムをPrologで実装してみた。
+（存在型は未実装である。）
 
 この文章のソースコードは以下にあります。
   
@@ -126,8 +123,7 @@ typeof/2述語の引数の意味を以下に示す。
 引数の前の「+」は入力、「-」は出力、「?」はそのどちらにもなることを示す。
 
 つまり、第2引数の「型」は、入力でも出力でもよく、
-入力なら型検査、出力なら型推論の意味になる。
-「Prologの双方向性」が利用できる例である。
+入力なら型検査、出力なら型付けの意味になる。
 
 ```
 typeof(+式, ?型)
@@ -146,6 +142,12 @@ typeof(+文脈, +式, ?型)
 
 型検査をおこなうtypeof/3は、TAPL(参考文献1.)の25.5節 **型付け** をそのまま移しただけである。
   
+tm_absに型注釈（型修飾）のない場合も許している。
+このとき、ラムダ変数の型を新しい（未束縛の）Prologの変数で表し
+文脈に追加している。 この変数はtypeofの実行にともなって、
+束縛される（型が決まる）ことが期待される。
+もし、型が決まらないなら、未束縛のProlog変数のまま出力される。  
+
 また、もとのプログラムにあるエラー時の処理はおこなわず、
 結果として実行が「失敗」するようにしている。
 */
@@ -165,9 +167,9 @@ typeof(CTX, tm_tabs(T2), ty_all(TyT2)) :-
 typeof(CTX, tm_tapp(T1, TyT2), TyT22) :-
         typeof(CTX, T1, ty_all(TyT12)),
         typeSubstTop(TyT2, TyT12, TyT22).
-typeof(CTX, tm_true, ty_Bool).        
-typeof(CTX, tm_false, ty_Bool).
-typeof(CTX, tm_if(T1, T2, T3), TyT2) :-
+typeof(_, tm_true, ty_Bool).        
+typeof(_, tm_false, ty_Bool).
+typeof(CTX, tm_if(T1, T2, T3), TyT12) :-
         typeof(CTX, T1, ty_Bool),
         typeof(CTX, T2, TyT12),
         typeof(CTX, T3, TyT12).
@@ -264,19 +266,22 @@ test(Tm, Ty) :-
 ### TAPLの例
 */
 
-g0 :-                                       % λX.λx:X.x : ∀X.X->X
+go0 :-                                      % λX.λx:X.x : ∀X.X->X
+                                            % λ λ0 0 0  : ∀0->0
 %      spy(typeof),
-        T = tm_tabs(tm_abs(ty_var(1 ), tm_var(0 ))),
+        T = tm_tabs(tm_abs(ty_var(0 ), tm_var(0 ))),
         typeof(T, Ty),
         write(Ty), nl.
 
-g1 :-                                       % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
+go1 :-                                      % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
+                                            % λ λ0->0 λ1 1 0  : ∀(0->0 )->0->0
 %      spy(typeof),
-        T = tm_tabs(tm_abs(ty_var(1)->ty_var(1), tm_abs(ty_var(2), tm_app(tm_var(1), tm_var(0 ))))),
+        T = tm_tabs(tm_abs(ty_var(0 )->ty_var(0 ), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0 ))))),
         typeof(T, Ty),
         write(Ty), nl.
       
-g11 :-                                      % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
+go11 :-                                     % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
+                                            % λ λ0->0 λ1 1 0  : ∀(0->0 )->0->0
 %       spy(typeof),
         test(tm_tabs(x,
                      tm_abs(f : ty_var(x) -> ty_var(x),
@@ -287,7 +292,8 @@ g11 :-                                      % λX.λf:X-X.λx:X.f x : ∀X.(X->X
         writeln(X).
 
 
-g2 :-                                       % λX.λf:X-X.λx:X.f f x : ∀X.(X->X)->X->X
+go2 :-                                      % λX.λf:X-X.λx:X.f f x : ∀X.(X->X)->X->X
+                                            % λ λ0->0 λ1 1 1 0  : ∀(0->0 )->0->0
         test(tm_tabs(x,
                      tm_abs(f : ty_var(x) -> ty_var(x),
                             tm_abs(a : ty_var(x),
@@ -336,7 +342,7 @@ dbi(tm_abs(X, M), Env, F, F2, tm_abs(D)) :- !,
         dbi_abs(X, M, Env, F, F2, D).
 dbi(tm_tabs(X, M), Env, F, F2, tm_tabs(D)) :- !,
         dbi_abs(X, M, Env, F, F2, D).
-dbi_abs(X, M, Env, F, F2, D) :-             % tm_absとtm_tabsの共通述語
+dbi_abs(X, M, Env, _, F2, D) :-             % tm_absとtm_tabsの共通述語
         atom(X), !,
         map_assoc(inc, Env, Env1),
         put_assoc(X, Env1, 0, Env2),
@@ -373,8 +379,6 @@ inc(N, N1) :-
 
 /**
 ## 逆変換
-
-型の式の逆変換には、未対応である。  
 */
 rbi(Exp, Dbi) :-
         rbi(Exp, 0, Dbi).
@@ -391,6 +395,10 @@ rbi(tm_tabs(M), I, tm_tabs(X, M2)) :- !,
         I1 is I + 1,
         atom_concat(x, I1, X),
         rbi(M, I1, M2).
+rbi(ty_all(M), I, ty_all(X, M2)) :- !,
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
 rbi(tm_var(N), I, tm_var(X)) :-
         integer(N),
         N =< I, !,                          % bound
@@ -401,9 +409,9 @@ rbi(ty_var(N), I, ty_var(X)) :-
         N =< I, !,                          % bound
         N1 is I - N,
         atom_concat(x, N1, X).
-rbi(tm_var(N), I, tm_var(X)) :- !,
+rbi(tm_var(N), _, tm_var(X)) :- !,
         atom_concat(x, N, X).               % free
-rbi(ty_var(N), I, ty_var(X)) :- !,
+rbi(ty_var(N), _, ty_var(X)) :- !,
         atom_concat(x, N, X).               % free
 rbi(Tm, I, Tm2) :-
         Tm =.. [Func|Tms], !,
