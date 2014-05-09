@@ -4,9 +4,8 @@ Prologによる、System Fの型検査と型推論について
 
 2014/05/05 @suharahiromichi
 
-単純型付きラムダ式に全称型（と存在型）を追加したSystem F
-の型付けのプログラムをPrologで実装してみた。
-（存在型は未実装である。）
+TAPL 第25章 System Fの型付けのプログラムをPrologで実装してみた。
+（ただし、存在型は未実装である。）
 
 この文章のソースコードは以下にあります。
   
@@ -17,7 +16,7 @@ https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_systemf_qiita.sw
 ```
 % swipl.
 ?- ['tapl_systemf_qitta.swi'].
-?- go24.
+?- go2.
 ```
 
 Prolog処理系はSWI-Prolog (5.10.4)で動作を確認している。GNU Prologでは未確認である。
@@ -52,7 +51,7 @@ de Bruijn Index に変換するコードは後半に示す。
   ∀x.y    ty_all(x, y)       全称型
   ∃x.y    ty_some(x, y)      存在型
   T1→T2   t1->t2             関数型 (ty_arrの中置記法)
-  T1 T2    ty_app(t1, t2)     型の適用、TAPLに記載がないが、追加した。
+  T1 T2    ty_app(t1, t2)     型の適用 (第23章にはないが、追加した。)
   X        ty_var(x)          型変数
   Bool     ty_bool            型定数
 ```
@@ -76,12 +75,12 @@ de Bruijn Index に変換するコードは後半に示す。
 ```
 (1)
 tm_tabs(x,
-  tm_abs(f : x -> x,
-    tm_abs(a : x,
-       tm_app(f, tm_app(f, a)))))
+  tm_abs(f : ty_var(x) -> ty_var(x),
+    tm_abs(a : ty_var(x),
+       tm_app(f, tm_app(tm_var(f), tm_var(a))))))
 
 (2)
-ty_all(x, (x->x)->x->x)
+ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x))
 
 (3)
 tm_tapp(double, ty_Bool -> ty_Bool).
@@ -91,8 +90,8 @@ tm_tapp(double, ty_Bool -> ty_Bool).
 
 ```
 (1)
-tm_tabs(
-  tm_abs(x -> x,
+tm_tabs(x,
+  tm_abs(ty_var(x)->ty_var(x),
     tm_abs(x,
        tm_app(1, tm_app(1, 0 )))))
 
@@ -141,7 +140,7 @@ typeof/3述語の引数の意味を以下に示す。
 typeof(+文脈, +式, ?型)
 ```
 
-型検査をおこなうtypeof/3は、TAPL(参考文献1.)の25.5節 **型付け** をそのまま移しただけである。
+型検査をおこなうtypeof/3は、TAPL(参考文献1.)の **25.5節 型付け** をそのまま移しただけである。
   
 tm_absに型注釈（型修飾）のない場合も許している。
 このとき、ラムダ変数の型を新しい（未束縛の）Prologの変数で表し
@@ -256,20 +255,29 @@ tymap(_, _, T, T).                          % 型定数
 ## テスト
 */
 test(Tm, Ty) :-
+        var(Ty), !,                         % 型付け。
         write(Tm), nl,
         dbi(Tm, Dm), write(Dm), nl,
-        rbi(Dm, Tm2), write(Tm2), nl, !,
-        typeof(Dm, Ty),
+%       rbi(Dm, Tm2), write(Tm2), nl, !,
+        typeof(Dm, Dy),
+        write(Dy), nl,
+        rbi(Dy, Ty),
         write(Ty), nl.
+
+test(Tm, Ty) :-                             % 型チェック
+        write(Tm), nl,
+        write(Ty), nl,
+        dbi(Tm, Dm), write(Dm), nl,
+        dbi(Ty, Dy), write(Dy), nl,
+        typeof(Dm, Dy).
 
 /**
 ## 実行例
 */
 
 /**
-### TAPLの例
+### 簡単な例
 */
-
 go0 :-                                      % λX.λx:X.x : ∀X.X->X
                                             % λ λ0 0 0  : ∀0->0
 %      spy(typeof),
@@ -277,25 +285,21 @@ go0 :-                                      % λX.λx:X.x : ∀X.X->X
         typeof(T, Ty),
         write(Ty), nl.
 
+/**
+### ちょっとした例
+*/
 go1 :-                                      % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
-                                            % λ λ0->0 λ1 1 0  : ∀(0->0 )->0->0
-%       spy(typeof),
-        T = tm_tabs(tm_abs(ty_var(0 )->ty_var(0 ), tm_abs(ty_var(1), tm_app(tm_var(1), tm_var(0 ))))),
-        typeof(T, Ty),
-        write(Ty), nl.
-      
-go11 :-                                     % λX.λf:X-X.λx:X.f x : ∀X.(X->X)->X->X
                                             % λ λ0->0 λ1 1 0  : ∀(0->0 )->0->0
 %       spy(typeof),
         test(tm_tabs(x,
                      tm_abs(f : ty_var(x) -> ty_var(x),
                             tm_abs(a : ty_var(x),
                                    tm_app(tm_var(f), tm_var(a))))),
-             X1),
-        rbi(X1, X),
-        writeln(X).
+             X).
 
-
+/**
+### double、型は上と同じ
+*/
 go2 :-                                      % λX.λf:X-X.λx:X.f f x : ∀X.(X->X)->X->X
                                             % λ λ0->0 λ1 1 1 0  : ∀(0->0 )->0->0
         test(tm_tabs(x,
@@ -303,10 +307,11 @@ go2 :-                                      % λX.λf:X-X.λx:X.f f x : ∀X.(X-
                             tm_abs(a : ty_var(x),
                                    tm_app(tm_var(f),
                                           tm_app(tm_var(f), tm_var(a)))))),
-             X1),
-        rbi(X1, X),
-        writeln(X).
+             X).
 
+/**
+### double に、型の適用をする
+*/
 go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->Bool->Bool
         test(tm_tapp(
                      tm_tabs(x,
@@ -315,31 +320,44 @@ go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->
                                            tm_app(tm_var(f),
                                                   tm_app(tm_var(f), tm_var(a)))))),
                      ty_bool),
-             X1),
-        rbi(X1, X),
-        writeln(X).
+             X).
 
-go4 :-       % λX.λY.λL.λm:(L X -> L Y).m : ∀X.∀Y.∀L.((L X -> L Y) -> (L X -> L Y))
-        test(tm_tabs(x,
-                     tm_tabs(y,
-                             tm_tabs(l,
-                                     tm_abs(m : ty_app(ty_var(l), ty_var(x)) -> ty_app(ty_var(l), ty_var(y)),
-                                            tm_var(m))))),
-             X1),
-        rbi(X1, X),
-        writeln(X).
-
-go5 :-       % λX.λY.λL.λm:(L X -> L Y).λp:(L X).m p : ∀X.∀Y.∀L.((L X -> L Y) -> L X -> L Y)
-%       spy(typeof),
-        test(tm_tabs(x,
-                     tm_tabs(y,
-                             tm_tabs(l,
-                                     tm_abs(m : ty_app(ty_var(l), ty_var(x)) -> ty_app(ty_var(l), ty_var(y)),
-                                            tm_abs(p : ty_app(ty_var(l), ty_var(x)),
-                                                   tm_app(tm_var(m), tm_var(p))))))),
-             X1),
-        rbi(X1, X),
-        writeln(X).
+/**
+### BoolのChurch表現
+*/
+go4 :-
+        Tru = tm_tabs(x, tm_abs(t : ty_var(x), tm_abs(f : ty_var(x),  tm_var(t)))),
+        Fls = tm_tabs(x, tm_abs(t : ty_var(x), tm_abs(f : ty_var(x),  tm_var(f)))),
+        CBool = ty_all(x, ty_var(x)->ty_var(x)->ty_var(x)),
+        test(Tru, CBool), nl,
+        test(Fls, CBool).
+        
+/**
+### Church数
+*/
+go5 :-
+        C0 = tm_tabs(x, tm_abs(s : ty_var(x)->ty_var(x),
+                               tm_abs(z : ty_var(x), tm_var(z)))),
+        C1 = tm_tabs(x, tm_abs(s : ty_var(x)->ty_var(x),
+                               tm_abs(z : ty_var(x),
+                                      tm_app(tm_var(s), tm_var(z))))),
+        C2 = tm_tabs(x, tm_abs(s : ty_var(x)->ty_var(x),
+                               tm_abs(z : ty_var(x),
+                                      tm_app(tm_var(s),
+                                             tm_app(tm_var(s), tm_var(z)))))),
+        CNat = ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x)),
+        CSUCC = tm_abs(n : CNat,
+                       tm_tabs(x,
+                               tm_abs(s : ty_var(x)->ty_var(x),
+                                      tm_abs(z : ty_var(x),
+                                             tm_app(tm_var(s),
+                                                    tm_app(tm_app(tm_tapp(tm_var(n), ty_var(x)),
+                                                                  tm_var(s)),
+                                                           tm_var(z))))))),
+        test(C0, CNat), nl,
+        test(C1, CNat), nl,
+        test(C2, CNat), nl,
+        test(CSUCC, CNat->CNat).
 
 /**
 # de Bruijn Index 変換
@@ -368,6 +386,8 @@ dbi(tm_abs(X:T, M), Env, F, F3, tm_abs(T2, D)) :-
 dbi(tm_abs(X, M), Env, F, F2, tm_abs(D)) :- !,
         dbi_abs(X, M, Env, F, F2, D).
 dbi(tm_tabs(X, M), Env, F, F2, tm_tabs(D)) :- !,
+        dbi_abs(X, M, Env, F, F2, D).
+dbi(ty_all(X, M), Env, F, F2, ty_all(D)) :- !,
         dbi_abs(X, M, Env, F, F2, D).
 dbi_abs(X, M, Env, _, F2, D) :-             % tm_absとtm_tabsの共通述語
         atom(X), !,
@@ -407,8 +427,8 @@ inc(N, N1) :-
 /**
 ## 逆変換
 */
-rbi(Exp, Dbi) :-
-        rbi(Exp, 0, Dbi).
+rbi(Dbi, Exp) :-
+        rbi(Dbi, 0, Exp).
 
 rbi(tm_abs(T, M), I, tm_abs(X:T, M2)) :- !,
         I1 is I + 1,
