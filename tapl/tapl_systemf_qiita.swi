@@ -1,5 +1,5 @@
 /**
-Prologによる、System Fの型検査と型推論について
+Prologによる、System Fの型付プログラム
 ========
 
 2014/05/05 @suharahiromichi
@@ -51,7 +51,7 @@ de Bruijn Index に変換するコードは後半に示す。
   ∀x.y    ty_all(x, y)       全称型
   ∃x.y    ty_some(x, y)      存在型
   T1→T2   t1->t2             関数型 (ty_arrの中置記法)
-  T1 T2    ty_app(t1, t2)     型の適用 (第23章にはないが、追加した。)
+  T1 T2     ty_app(t1, t2)     型の適用 (第25章にはないが、追加した。)
   X        ty_var(x)          型変数
   Bool     ty_bool            型定数
 ```
@@ -61,6 +61,7 @@ de Bruijn Index に変換するコードは後半に示す。
 ### 一般的な記法
 
 以下に全称型を含む一般的な記法を示す。
+
 ```
 (1) (λX. λf:X→X. λa:X. f (f a))
 
@@ -71,8 +72,10 @@ de Bruijn Index に変換するコードは後半に示す。
 
 ### ここで使う記法
 
-ここで使う記法は、ぞれぞれ次のようになる。
+ここで使う記法では、(1)(2)(3)は次のようになる。
+
 ```
+
 (1)
 tm_tabs(x,
   tm_abs(f : ty_var(x) -> ty_var(x),
@@ -86,14 +89,18 @@ ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x))
 tm_tapp(double, ty_Bool -> ty_Bool).
 ```
 
-### ここで使う記法(de Bruijn Index)
+### ここで使う de Bruijn Index
 
+内部的には、de Bruijn Index を使用する。
+  
 ```
+
 (1)
-tm_tabs(x,
-  tm_abs(ty_var(x)->ty_var(x),
-    tm_abs(x,
-       tm_app(1, tm_app(1, 0 )))))
+tm_tabs(
+  tm_abs(ty_var(0)->ty_var(0),
+    tm_abs(ty_var(1),
+      tm_app(tm_var(1),
+        tm_app(tm_var(1), tm_var(0))))))
 
 (2)
 ty_all((ty_var(0) -> ty_var(0)) -> ty_var(0) -> ty_var(0 )))))
@@ -295,7 +302,7 @@ go1 :-                                      % λX.λf:X-X.λx:X.f x : ∀X.(X->X
                      tm_abs(f : ty_var(x) -> ty_var(x),
                             tm_abs(a : ty_var(x),
                                    tm_app(tm_var(f), tm_var(a))))),
-             X).
+             _).
 
 /**
 ### double、型は上と同じ
@@ -307,10 +314,10 @@ go2 :-                                      % λX.λf:X-X.λx:X.f f x : ∀X.(X-
                             tm_abs(a : ty_var(x),
                                    tm_app(tm_var(f),
                                           tm_app(tm_var(f), tm_var(a)))))),
-             X).
+             _).
 
 /**
-### double に、型の適用をする
+### double に型の適用をする
 */
 go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->Bool->Bool
         test(tm_tapp(
@@ -320,7 +327,7 @@ go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->
                                            tm_app(tm_var(f),
                                                   tm_app(tm_var(f), tm_var(a)))))),
                      ty_bool),
-             X).
+             _).
 
 /**
 ### BoolのChurch表現
@@ -367,7 +374,6 @@ go5 :-
 */
 /**
 ## 正変換
-
 */
 dbi(Exp, Dbi) :-
         empty_assoc(Env),
@@ -389,14 +395,6 @@ dbi(tm_tabs(X, M), Env, F, F2, tm_tabs(D)) :- !,
         dbi_abs(X, M, Env, F, F2, D).
 dbi(ty_all(X, M), Env, F, F2, ty_all(D)) :- !,
         dbi_abs(X, M, Env, F, F2, D).
-dbi_abs(X, M, Env, _, F2, D) :-             % tm_absとtm_tabsの共通述語
-        atom(X), !,
-        map_assoc(inc, Env, Env1),
-        put_assoc(X, Env1, 0, Env2),
-        assoc_to_values(Env2, L),
-        max_list(L, F1),
-        dbi(M, Env2, F1, F2, D).
-
 dbi(tm_var(X), Env, F, F, tm_var(N)) :-
         atom(X),
         get_assoc(X, Env, N), !.
@@ -416,6 +414,14 @@ dbi(Tm, Env, F, F2, Tm2) :-
         dbi_list(Tms, Env, F, F2, Tm2s),
         Tm2 =.. [Func|Tm2s].
 
+dbi_abs(X, M, Env, _, F2, D) :-             % tm_absとtm_tabsの共通述語
+        atom(X), !,
+        map_assoc(inc, Env, Env1),
+        put_assoc(X, Env1, 0, Env2),
+        assoc_to_values(Env2, L),
+        max_list(L, F1),
+        dbi(M, Env2, F1, F2, D).
+
 dbi_list([Tm|Tms], Env, F, F2, [Tm2|Tm2s]) :-
         dbi(Tm, Env, F, F1, Tm2),
         dbi_list(Tms, Env, F1, F2, Tm2s).
@@ -431,21 +437,13 @@ rbi(Dbi, Exp) :-
         rbi(Dbi, 0, Exp).
 
 rbi(tm_abs(T, M), I, tm_abs(X:T, M2)) :- !,
-        I1 is I + 1,
-        atom_concat(x, I1, X),
-        rbi(M, I1, M2).
+        rbi_abs(M, I, X, M2).
 rbi(tm_abs(M), I, tm_abs(X, M2)) :- !,
-        I1 is I + 1,
-        atom_concat(x, I1, X),
-        rbi(M, I1, M2).
+        rbi_abs(M, I, X, M2).
 rbi(tm_tabs(M), I, tm_tabs(X, M2)) :- !,
-        I1 is I + 1,
-        atom_concat(x, I1, X),
-        rbi(M, I1, M2).
+        rbi_abs(M, I, X, M2).
 rbi(ty_all(M), I, ty_all(X, M2)) :- !,
-        I1 is I + 1,
-        atom_concat(x, I1, X),
-        rbi(M, I1, M2).
+        rbi_abs(M, I, X, M2).
 rbi(tm_var(N), I, tm_var(X)) :-
         integer(N),
         N =< I, !,                          % bound
@@ -465,10 +463,37 @@ rbi(Tm, I, Tm2) :-
         rbi_list(Tms, I, Tm2s),
         Tm2 =.. [Func|Tm2s].
 
+rbi_abs(M, I, X, M2) :-
+        I1 is I + 1,
+        atom_concat(x, I1, X),
+        rbi(M, I1, M2).
+
 rbi_list([Tm|Tms], I, [Tm2|Tm2s]) :-
         rbi(Tm, I, Tm2),
         rbi_list(Tms, I, Tm2s).
 rbi_list([], _, []).
+
+/**
+## テスト
+  */
+
+t1 :-                                       % (1)
+        dbi(tm_tabs(x,
+                    tm_abs(f : ty_var(x) -> ty_var(x),
+                           tm_abs(a : ty_var(x),
+                                  tm_app(tm_var(f),
+                                         tm_app(tm_var(f), tm_var(a)))))),
+            X),
+        rbi(X, X1),
+        writeln(X),
+        writeln(X1).
+
+t2 :-                                       % (2)
+        dbi(ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x)),
+            X),
+        rbi(X, X1),
+        writeln(X),
+        writeln(X1).
 
 /**
 # 補足説明
