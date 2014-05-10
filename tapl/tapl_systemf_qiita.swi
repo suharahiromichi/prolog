@@ -2,7 +2,7 @@
 Prologによる、System Fの型付プログラム
 ========
 
-2014/05/05 @suharahiromichi
+2014/05/10 @suharahiromichi
 
 TAPL 第25章 System Fの型付けのプログラムをPrologで実装してみた。
 （ただし、存在型は未実装である。）
@@ -19,7 +19,7 @@ https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_systemf_qiita.sw
 ?- go2.
 ```
 
-Prolog処理系はSWI-Prolog (5.10.4)で動作を確認している。GNU Prologでは未確認である。
+Prolog処理系はSWI-Prolog (Ver.5.10.4)で動作を確認している。GNU Prologでは未確認である。
 
 省略時解釈（ディフォルト）のとおり Occurs Check のオプションは off のままとする。
 ただし、途中の1箇所において、unify_with_occurs_check述語
@@ -50,8 +50,7 @@ de Bruijn Index に変換するコードは後半に示す。
   y [Bool] tm_tapp(y, ty_bool) 型の適用
   ∀x.y    ty_all(x, y)       全称型
   ∃x.y    ty_some(x, y)      存在型
-  T1→T2   t1->t2             関数型 (ty_arrの中置記法)
-  T1 T2     ty_app(t1, t2)     型の適用 (第25章にはないが、追加した。)
+  T1→T2    t1->t2             関数型 (ty_arrの中置記法)
   X        ty_var(x)          型変数
   Bool     ty_bool            型定数
 ```
@@ -91,7 +90,7 @@ tm_tapp(double, ty_Bool -> ty_Bool).
 
 ### ここで使う de Bruijn Index
 
-内部的には、de Bruijn Index を使用する。
+内部的には、de Bruijn Index を使用する。その記法を以下に示す。
   
 ```
 
@@ -147,19 +146,14 @@ typeof/3述語の引数の意味を以下に示す。
 typeof(+文脈, +式, ?型)
 ```
 
-型検査をおこなうtypeof/3は、TAPL(参考文献1.)の **25.5節 型付け** をそのまま移しただけである。
-  
-tm_absに型注釈（型修飾）のない場合も許している。
-このとき、ラムダ変数の型を新しい（未束縛の）Prologの変数で表し
-文脈に追加している。 この変数はtypeofの実行にともなって、
-束縛される（型が決まる）ことが期待される。
-もし、型が決まらないなら、未束縛のProlog変数のまま出力される。  
-
-また、もとのプログラムにあるエラー時の処理はおこなわず、
-結果として実行が「失敗」するようにしている。
+型検査をおこなうtypeof/3は、TAPL(参考文献1.)の **25.5節 型付け**
+を移して、すこし修正したものである。
+なお、エラー時の処理はおこなわず、実行が「失敗」するようにしている。
 */
 
 typeof(CTX, tm_var(I), T) :-
+        getTypeFromContext(CTX, I, T).
+typeof(CTX, ty_var(I), T) :-                % 複雑な型を型適用するとき、必要になる。
         getTypeFromContext(CTX, I, T).
 typeof(CTX, tm_abs(TyT1, Tm2), TyT1 -> TyT22) :- % 型注釈のある場合
         typeof([varbind(TyT1)|CTX], Tm2, TyT2),
@@ -186,8 +180,8 @@ typeof(CTX, tm_if(T1, T2, T3), TyT12) :-
 
 getTypeFromContextは、変数の型を文脈(context)から取り出すことをおこなう。
 de Bruijn Indexの場合は、Indexの値によって一意に決まるため、
-（なにも考えずに）nth0述語を使用することができる。
-Occurs Checkが必要になる理由につてては、(文献5.)の実行例を参照のこと。
+nth0述語で取り出すことができる(注1)。
+なお、Occurs Checkが必要になる理由につてては、(参考文献3.)を参照のこと。
 */
 
 getTypeFromContext(CTX, I, T) :-
@@ -319,7 +313,7 @@ go2 :-                                      % λX.λf:X-X.λx:X.f f x : ∀X.(X-
 /**
 ### double に型の適用をする
 */
-go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->Bool->Bool
+go3 :-                   % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->Bool->Bool
         test(tm_tapp(
                      tm_tabs(x,
                              tm_abs(f : ty_var(x) -> ty_var(x),
@@ -330,7 +324,7 @@ go3 :-                       % (λX.λf:X-X.λx:X.f f x) [Bool] : (Bool->Bool)->
              _).
 
 /**
-### BoolのChurch表現
+### BoolのChurch表現 (TAPL)
 */
 go4 :-
         Tru = tm_tabs(x, tm_abs(t : ty_var(x), tm_abs(f : ty_var(x),  tm_var(t)))),
@@ -340,7 +334,7 @@ go4 :-
         test(Fls, CBool).
         
 /**
-### Church数
+### Church数 (TAPL)
 */
 go5 :-
         C0 = tm_tabs(x, tm_abs(s : ty_var(x)->ty_var(x),
@@ -361,10 +355,16 @@ go5 :-
                                                     tm_app(tm_app(tm_tapp(tm_var(n), ty_var(x)),
                                                                   tm_var(s)),
                                                            tm_var(z))))))),
+        CPLUS = tm_abs(m : CNat,
+                       tm_abs(n : CNat,
+                              tm_app(tm_app(tm_tapp(tm_var(m), CNat),
+                                            CSUCC),
+                                     ty_var(n)))),
         test(C0, CNat), nl,
         test(C1, CNat), nl,
         test(C2, CNat), nl,
-        test(CSUCC, CNat->CNat).
+        test(CSUCC, CNat->CNat), nl,
+        test(CPLUS, CNat->CNat->CNat).
 
 /**
 # de Bruijn Index 変換
@@ -436,7 +436,8 @@ inc(N, N1) :-
 rbi(Dbi, Exp) :-
         rbi(Dbi, 0, Exp).
 
-rbi(tm_abs(T, M), I, tm_abs(X:T, M2)) :- !,
+rbi(tm_abs(T, M), I, tm_abs(X:T2, M2)) :- !,
+        rbi(T, I, T2),
         rbi_abs(M, I, X, M2).
 rbi(tm_abs(M), I, tm_abs(X, M2)) :- !,
         rbi_abs(M, I, X, M2).
@@ -478,22 +479,20 @@ rbi_list([], _, []).
   */
 
 t1 :-                                       % (1)
-        dbi(tm_tabs(x,
+        X0 = tm_tabs(x,
                     tm_abs(f : ty_var(x) -> ty_var(x),
                            tm_abs(a : ty_var(x),
                                   tm_app(tm_var(f),
                                          tm_app(tm_var(f), tm_var(a)))))),
-            X),
-        rbi(X, X1),
-        writeln(X),
-        writeln(X1).
+        writeln(X0),
+        dbi(X0, X), writeln(X),
+        rbi(X, X1), writeln(X1).
 
 t2 :-                                       % (2)
-        dbi(ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x)),
-            X),
-        rbi(X, X1),
-        writeln(X),
-        writeln(X1).
+        X0 = ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x)), 
+        writeln(X0),
+        dbi(X0, X), writeln(X),
+        rbi(X, X1), writeln(X1).
 
 /**
 # 補足説明
@@ -501,7 +500,7 @@ t2 :-                                       % (2)
 ## 注1
 
 本資料では de Bruijn Index を0から使用する。
-1からにする場合は、(文献5.) の補足説明を参照のこと。
+1からにする場合は、(参考文献 3.) の補足説明を参照のこと。
 
 */
 
@@ -509,10 +508,8 @@ t2 :-                                       % (2)
 # 参考文献
 
 1. Benjamin C. Pierce、住井 監訳「型システム入門 プログラミング言語と型の理論」オーム社
-2. Benjamin C. Pierce他、梅村他訳「ソフトウエアの基礎」、http://proofcafe.org/sf/
-3. SWI-Prolog、http://www.swi-prolog.org/
-4. GNU Prolog、http://www.gprolog.org/
-5. Prologによる、単純型付きラムダ式の型検査と型推論について、http://qiita.com/suharahiromichi/items/6d944725636c6cac7400
+2. SWI-Prolog、http://www.swi-prolog.org/
+3. Prologによる、単純型付きラムダ式の型検査と型推論について、http://qiita.com/suharahiromichi/items/6d944725636c6cac7400
 */  
                                                               
 /* end */
