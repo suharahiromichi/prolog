@@ -364,7 +364,23 @@ go5 :-
         test(C1, CNat), nl,
         test(C2, CNat), nl,
         test(CSUCC, CNat->CNat), nl,
-        test(CPLUS, CNat->CNat->CNat).
+        test(CPLUS, CNat->CNat->CNat), nl,
+        
+        CPairNat = ty_all(x, (CNat -> CNat -> ty_var(x)) -> ty_var(x)), % 型
+        PairNat = tm_abs(n1 : CNat,                                     % コンストラクタ
+                         tm_abs(n2 : CNat,
+                                tm_tabs(x,
+                                        tm_abs(f : CNat -> CNat -> ty_var(x),
+                                               tm_app(tm_app(tm_var(f), tm_var(n1)), tm_var(n2)))))),
+        FstNat = tm_abs(p : CPairNat,
+                        tm_app(tm_tapp(tm_var(p), CNat),
+                               (tm_abs(n1 : CNat, tm_abs(n2 : CNat, tm_var(n1)))))),
+        SndNat = tm_abs(p : CPairNat,
+                        tm_app(tm_tapp(tm_var(p), CNat),
+                               (tm_abs(n1 : CNat, tm_abs(n2 : CNat, tm_var(n2)))))),
+        test(PairNat, CNat -> CNat -> CPairNat), nl,
+        test(FstNat, CPairNat -> CNat), nl,
+        test(SndNat, CPairNat -> CNat), nl.
 
 /**
 # de Bruijn Index 変換
