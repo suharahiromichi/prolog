@@ -85,7 +85,7 @@ tm_tabs(x,
 ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x))
 
 (3)
-tm_tapp(double, ty_Bool -> ty_Bool).
+tm_tapp(double, ty_bool -> ty_bool).
 ```
 
 ### ここで使う de Bruijn Index
@@ -105,7 +105,7 @@ tm_tabs(
 ty_all((ty_var(0) -> ty_var(0)) -> ty_var(0) -> ty_var(0 )))))
 
 (3)
-tm_tapp(double, ty_Bool -> ty_Bool).
+tm_tapp(double, ty_bool -> ty_bool).
 ```
 
 */  
@@ -168,10 +168,10 @@ typeof(CTX, tm_tabs(T2), ty_all(TyT2)) :-
 typeof(CTX, tm_tapp(T1, TyT2), TyT22) :-
         typeof(CTX, T1, ty_all(TyT12)),
         typeSubstTop(TyT2, TyT12, TyT22).
-typeof(_, tm_true, ty_Bool).        
-typeof(_, tm_false, ty_Bool).
+typeof(_, tm_true, ty_bool).        
+typeof(_, tm_false, ty_bool).
 typeof(CTX, tm_if(T1, T2, T3), TyT12) :-
-        typeof(CTX, T1, ty_Bool),
+        typeof(CTX, T1, ty_bool),
         typeof(CTX, T2, TyT12),
         typeof(CTX, T3, TyT12).
 
@@ -230,16 +230,13 @@ typeSubst_onmap(_, _, X, ty_var(X)).
 gosu :-
         TT = ty_all(ty_var(3) -> ty_var(0 )),
         writeln(TT),
-        typeSubst(ty_Bool, 2, TT, T2),      % indexの2をty_Boolにする。
+        typeSubst(ty_bool, 2, TT, T2),      % indexの2をty_boolにする。
         writeln(T2).
 
 /**
 ## typeShift と typeSubst の共通述語
   */
 tymap(ONVAR, C, T1->T2, T12->T22) :- !,     % ty_arr
-        tymap(ONVAR, C, T1, T12),
-        tymap(ONVAR, C, T2, T22).
-tymap(ONVAR, C, ty_app(T1, T2), ty_app(T12, T22)) :- !, % TAPLに記載がないが、追加した。
         tymap(ONVAR, C, T1, T12),
         tymap(ONVAR, C, T2, T22).
 tymap(ONVAR, C, ty_var(X), T2) :- !,
@@ -256,7 +253,7 @@ tymap(_, _, T, T).                          % 型定数
 ## テスト
 */
 test(Tm, Ty) :-
-        var(Ty), !,                         % 型付け。
+        var(Ty), !,                         % 型付け
         write(Tm), nl,
         dbi(Tm, Dm), write(Dm), nl,
 %       rbi(Dm, Tm2), write(Tm2), nl, !,
@@ -352,7 +349,8 @@ go5 :-
                                tm_abs(s : ty_var(x)->ty_var(x),
                                       tm_abs(z : ty_var(x),
                                              tm_app(tm_var(s),
-                                                    tm_app(tm_app(tm_tapp(tm_var(n), ty_var(x)),
+                                                    tm_app(tm_app(tm_tapp(tm_var(n),
+                                                                          ty_var(x)),
                                                                   tm_var(s)),
                                                            tm_var(z))))))),
         CPLUS = tm_abs(m : CNat,
@@ -371,7 +369,8 @@ go5 :-
                          tm_abs(n2 : CNat,
                                 tm_tabs(x,
                                         tm_abs(f : CNat -> CNat -> ty_var(x),
-                                               tm_app(tm_app(tm_var(f), tm_var(n1)), tm_var(n2)))))),
+                                               tm_app(tm_app(tm_var(f), tm_var(n1)),
+                                                      tm_var(n2)))))),
         FstNat = tm_abs(p : CPairNat,
                         tm_app(tm_tapp(tm_var(p), CNat),
                                (tm_abs(n1 : CNat, tm_abs(n2 : CNat, tm_var(n1)))))),
@@ -381,6 +380,40 @@ go5 :-
         test(PairNat, CNat -> CNat -> CPairNat), nl,
         test(FstNat, CPairNat -> CNat), nl,
         test(SndNat, CPairNat -> CNat), nl.
+
+/**
+### List (TAPL)
+  */
+go6 :-
+        CList_x = ty_all(r,                 % CList X
+                         (ty_var(x) -> ty_var(r) -> ty_var(r)) -> ty_var(r) -> ty_var(r)),
+        Nil = tm_tabs(x,
+                      tm_tabs(r,
+                              tm_abs(c : ty_var(x) -> ty_var(r) -> ty_var(r),
+                                     tm_abs(n : ty_var(r),
+                                            ty_var(n))))),
+        Cons = tm_tabs(x,
+                       tm_abs(hd : ty_var(x),
+                              tm_abs(tl : CList_x, % CList X
+                                     tm_tabs(r,
+                                             tm_abs(c : ty_var(x) -> ty_var(r) -> ty_var(r),
+                                                    tm_abs(n : ty_var(r),
+                                                           tm_app(tm_app(tm_var(c),
+                                                                         tm_var(hd)),
+                                                                  tm_app(tm_app(tm_tapp(tm_var(tl),
+                                                                                        ty_var(r)),
+                                                                                tm_var(c)),
+                                                                         tm_var(n))))))))),
+        IsNil = tm_tabs(x,
+                        tm_abs(l : CList_x, % CList X
+                               tm_app(tm_app(tm_tapp(tm_var(l), ty_bool),
+                                             tm_abs(hd : ty_var(x),
+                                                    tm_abs(tl : ty_bool,
+                                                           tm_false))),
+                                      tm_true))),
+        test(Nil, ty_all(x, CList_x)), nl,
+        test(Cons, ty_all(x, ty_var(x) -> CList_x -> CList_x)), nl,
+        test(IsNil, ty_all(x, CList_x -> ty_bool)).
 
 /**
 # de Bruijn Index 変換
