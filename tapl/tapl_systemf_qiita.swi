@@ -13,11 +13,9 @@ https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_systemf_qiita.sw
 
 使い方の例：
   
-```
-% swipl.
-?- ['tapl_systemf_qitta.swi'].
-?- go2.
-```
+    % swipl.
+    ?- ['tapl_systemf_qitta.swi'].
+    ?- go2.
 
 Prolog処理系はSWI-Prolog (Ver.5.10.4)で動作を確認している。GNU Prologでは未確認である。
 
@@ -39,21 +37,19 @@ de Bruijn Index に変換するコードは後半に示す。
 /**
 ## 記法の一覧
 
-```
-  λx.y     tm_abs(x, y)       型注釈のないλ抽象
-  λx:T.y   tm_abs(x:T, y)     型注釈のあるλ抽象 (「:」は中置記法)
-  f x      tm_app(f, x)       適用
-  x        tm_var(x)          変数の参照
-  True     tm_true            定数
-  False    tm_false           定数
-  λX.y     tm_tabs(T, y)      型のλ抽象
-  y [Bool] tm_tapp(y, ty_bool) 型の適用
-  ∀x.y    ty_all(x, y)       全称型
-  ∃x.y    ty_some(x, y)      存在型
-  T1→T2    t1->t2             関数型 (ty_arrの中置記法)
-  X        ty_var(x)          型変数
-  Bool     ty_bool            型定数
-```
+    λx.y     tm_abs(x, y)       型注釈のないλ抽象
+    λx:T.y   tm_abs(x:T, y)     型注釈のあるλ抽象 (「:」は中置記法)
+    f x      tm_app(f, x)       適用
+    x        tm_var(x)          変数の参照
+    True     tm_true            定数
+    False    tm_false           定数
+    λX.y     tm_tabs(T, y)      型のλ抽象
+    y [Bool] tm_tapp(y, ty_bool) 型の適用
+    ∀x.y    ty_all(x, y)       全称型
+    ∃x.y    ty_some(x, y)      存在型
+    T1→T2    t1->t2             関数型 (ty_arrの中置記法)
+    X        ty_var(x)          型変数
+    Bool     ty_bool            型定数
 
 ## 変換の例
 
@@ -61,53 +57,44 @@ de Bruijn Index に変換するコードは後半に示す。
 
 以下に全称型を含む一般的な記法を示す。
 
-```
-(1) (λX. λf:X→X. λa:X. f (f a))
-
-(2) ∀X. (X→X)→X→X （(1)の型）
-
-(3) double [Bool→Bool]
-```
+    (1) (λX. λf:X→X. λa:X. f (f a))
+    
+    (2) ∀X. (X→X)→X→X    ((1)の型)
+    
+    (3) double [Bool→Bool]
 
 ### ここで使う記法
 
 ここで使う記法では、(1)(2)(3)は次のようになる。
 
-```
-
-(1)
-tm_tabs(x,
-  tm_abs(f : ty_var(x) -> ty_var(x),
-    tm_abs(a : ty_var(x),
-       tm_app(f, tm_app(tm_var(f), tm_var(a))))))
-
-(2)
-ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x))
-
-(3)
-tm_tapp(double, ty_bool -> ty_bool).
-```
+    (1)
+    tm_tabs(x,
+      tm_abs(f : ty_var(x) -> ty_var(x),
+        tm_abs(a : ty_var(x),
+           tm_app(f, tm_app(tm_var(f), tm_var(a))))))
+    
+    (2)
+    ty_all(x, (ty_var(x)->ty_var(x))->ty_var(x)->ty_var(x))
+    
+    (3)
+    tm_tapp(double, ty_bool -> ty_bool).
 
 ### ここで使う de Bruijn Index
 
 内部的には、de Bruijn Index を使用する。その記法を以下に示す。
-  
-```
 
-(1)
-tm_tabs(
-  tm_abs(ty_var(0)->ty_var(0),
-    tm_abs(ty_var(1),
-      tm_app(tm_var(1),
-        tm_app(tm_var(1), tm_var(0))))))
-
-(2)
-ty_all((ty_var(0) -> ty_var(0)) -> ty_var(0) -> ty_var(0 )))))
-
-(3)
-tm_tapp(double, ty_bool -> ty_bool).
-```
-
+    (1)
+    tm_tabs(
+      tm_abs(ty_var(0)->ty_var(0),
+        tm_abs(ty_var(1),
+          tm_app(tm_var(1),
+            tm_app(tm_var(1), tm_var(0))))))
+    
+    (2)
+    ty_all((ty_var(0) -> ty_var(0)) -> ty_var(0) -> ty_var(0 )))))
+    
+    (3)
+    tm_tapp(double, ty_bool -> ty_bool).
 */  
 
 /**
@@ -131,9 +118,7 @@ typeof/2述語の引数の意味を以下に示す。
 つまり、第2引数の「型」は、入力でも出力でもよく、
 入力なら型検査、出力なら型付けの意味になる。
 
-```
-typeof(+式, ?型)
-```                                                             
+    typeof(+式, ?型)
 */
 
 typeof(E, T) :-
@@ -142,9 +127,7 @@ typeof(E, T) :-
 /**
 typeof/3述語の引数の意味を以下に示す。
   
-```
-typeof(+文脈, +式, ?型)
-```
+    typeof(+文脈, +式, ?型)
 
 型検査をおこなうtypeof/3は、TAPL(参考文献1.)の **25.5節 型付け**
 を移して、すこし修正したものである。
@@ -385,32 +368,37 @@ go5 :-
 ### List (TAPL)
   */
 go6 :-
-        CList_x = ty_all(r,                 % CList X
-                         (ty_var(x) -> ty_var(r) -> ty_var(r)) -> ty_var(r) -> ty_var(r)),
-        Nil = tm_tabs(x,
-                      tm_tabs(r,
-                              tm_abs(c : ty_var(x) -> ty_var(r) -> ty_var(r),
-                                     tm_abs(n : ty_var(r),
-                                            ty_var(n))))),
-        Cons = tm_tabs(x,
-                       tm_abs(hd : ty_var(x),
-                              tm_abs(tl : CList_x, % CList X
-                                     tm_tabs(r,
-                                             tm_abs(c : ty_var(x) -> ty_var(r) -> ty_var(r),
-                                                    tm_abs(n : ty_var(r),
-                                                           tm_app(tm_app(tm_var(c),
-                                                                         tm_var(hd)),
-                                                                  tm_app(tm_app(tm_tapp(tm_var(tl),
-                                                                                        ty_var(r)),
-                                                                                tm_var(c)),
-                                                                         tm_var(n))))))))),
-        IsNil = tm_tabs(x,
-                        tm_abs(l : CList_x, % CList X
-                               tm_app(tm_app(tm_tapp(tm_var(l), ty_bool),
-                                             tm_abs(hd : ty_var(x),
-                                                    tm_abs(tl : ty_bool,
-                                                           tm_false))),
-                                      tm_true))),
+        CList_x =
+        ty_all(r,                           % CList X
+               (ty_var(x) -> ty_var(r) -> ty_var(r)) -> ty_var(r) -> ty_var(r)),
+        
+        Nil =
+        tm_tabs(x,
+                tm_tabs(r,
+                        tm_abs(c : ty_var(x) -> ty_var(r) -> ty_var(r),
+                               tm_abs(n : ty_var(r),
+                                      ty_var(n))))),
+        Cons =
+        tm_tabs(x,
+                tm_abs(hd : ty_var(x),
+                       tm_abs(tl : CList_x, % CList X
+                              tm_tabs(r,
+                                      tm_abs(c : ty_var(x) -> ty_var(r) -> ty_var(r),
+                                             tm_abs(n : ty_var(r),
+                                                    tm_app(tm_app(tm_var(c),
+                                                                  tm_var(hd)),
+                                                           tm_app(tm_app(tm_tapp(tm_var(tl),
+                                                                                 ty_var(r)),
+                                                                         tm_var(c)),
+                                                                  tm_var(n))))))))),
+        IsNil =
+        tm_tabs(x,
+                tm_abs(l : CList_x,         % CList X
+                       tm_app(tm_app(tm_tapp(tm_var(l), ty_bool),
+                                     tm_abs(hd : ty_var(x),
+                                            tm_abs(tl : ty_bool,
+                                                   tm_false))),
+                              tm_true))),
         test(Nil, ty_all(x, CList_x)), nl,
         test(Cons, ty_all(x, ty_var(x) -> CList_x -> CList_x)), nl,
         test(IsNil, ty_all(x, CList_x -> ty_bool)).
@@ -430,10 +418,8 @@ dbi(Exp, Dbi) :-
 /**
 dbi/4述語の引数の意味は以下のとおり。
 
-```
-dbi(+ラムダ式, +環境, +自由変数のインデックス，
-    -自由変数の更新されたインデクス， -変換後の式)
-```
+    dbi(+ラムダ式, +環境, +自由変数のインデックス，
+        -自由変数の更新されたインデクス， -変換後の式)
 */
 dbi(tm_abs(X:T, M), Env, F, F3, tm_abs(T2, D)) :-
         dbi(T, Env, F, F2, T2),
@@ -558,7 +544,8 @@ t2 :-                                       % (2)
 
 1. Benjamin C. Pierce、住井 監訳「型システム入門 プログラミング言語と型の理論」オーム社
 2. SWI-Prolog、http://www.swi-prolog.org/
-3. Prologによる、単純型付きラムダ式の型検査と型推論について、http://qiita.com/suharahiromichi/items/6d944725636c6cac7400
+3. Prologによる、単純型付きラムダ式の型検査と型推論について、
+  http://qiita.com/suharahiromichi/items/6d944725636c6cac7400
 */  
                                                               
 /* end */
