@@ -162,7 +162,7 @@ typeof(CTX, tm_if(T1, T2, T3), TyT12) :-
 /**
 ## getTypeFromContext
 
-getTypeFromContextは、変数の型を文脈(context)から取り出すことをおこなう。
+`getTypeFromContext`は、変数の型を文脈(context)から取り出すことをおこなう。
 de Bruijn Indexの場合は、Indexの値によって一意に決まるため、
 nth0述語で取り出すことができる(注1)。
 なお、Occurs Checkが必要になる理由につてては、(参考文献3.)を参照のこと。
@@ -408,17 +408,16 @@ go6 :-
 ### call/cc による古典論理の証明
 
 「call/ccを使って」二重否定除去の
-定理：∀P. ~ ~ P → P を証明する。
+定理：`∀P. ~ ~ P → P` を証明する。
 
 二重否定除去の定理は古典論理の範疇に属するので、
 直観論理に対応する型付きラムダ計算の範囲では証明できない。
-そこで、call/cc : ∀P. ((P → False) → P) → P を公理として追加することで、
+そこで、call/cc : `∀P. ((P → False) → P) → P` を公理として追加することで、
 実際に証明できることを示す。
   
-~P は P→False のことであるから、
-∀P. ((P → False) → False) → P を証明する。
+`~P` は `P→False` のことであるから、`∀P. ((P → False) → False) → P` を証明する。
 
-否定についての定理 false_ind : ∀P. False → P と、
+まず、否定についての定理 false_ind : `∀P. False → P` と、
 call/cc の型を typeof に追加する。
   */
 typeof(_, false_ind, T) :-
@@ -428,8 +427,8 @@ typeof(_, callcc, T) :-
 
 /**
 次の go7 は成功する。
-その 「Q」は、∀P. ((P → False) → False) → P の型を持ったラムダ式であり、
-その値は、定理 ∀P. ~ ~ P → P が成立する「証拠」であると考えられる。
+その `Q`は、`∀P. ((P → False) → False) → P` の型を持ったラムダ式であり、
+その値は、定理 `∀P. ~ ~ P → P` が成立する「証拠」であると考えられる。
   */
 go7 :-
         Q = tm_tabs(p,
@@ -440,6 +439,24 @@ go7 :-
                                                 tm_app(tm_var(h), tm_var(h1))))))),
         test(Q,
              ty_all(p, ((ty_var(p) -> ty_false) -> ty_false) -> ty_var(p))).
+
+
+/**
+もっとあからさまにいうと、「call/ccがあると古典論理が証明できる」というのは、
+直観論理で、`∀P. (((P→False)→P)→P) → ((P→False)→False)→P`
+が証明できると言っているに過ぎない。
+*/
+go72 :-
+        Q = tm_tabs(p,
+                    tm_abs(c : ((ty_var(p) -> ty_false) -> ty_var(p)) -> ty_var(p),
+                           tm_abs(h : (ty_var(p) -> ty_false) -> ty_false,
+                                  tm_app(tm_var(c),
+                                         tm_abs(h1 : ty_var(p) -> ty_false,
+                                                tm_app(tm_tapp(false_ind, ty_var(p)),
+                                                       tm_app(tm_var(h), tm_var(h1)))))))),
+        test(Q, ty_all(p,
+                       (((ty_var(p) -> ty_false) -> ty_var(p)) -> ty_var(p)) ->
+                       ((ty_var(p) -> ty_false) -> ty_false) -> ty_var(p))).
 
 /**
 # de Bruijn Index 変換
