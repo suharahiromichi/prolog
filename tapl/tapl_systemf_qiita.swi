@@ -418,7 +418,7 @@ go6 :-
 ~P は P→False のことであるから、
 ∀P. ((P → False) → False) → P を証明する。
 
-否定についての推論規則 ∀P. False → P にあたる false_ind と、
+否定についての定理 false_ind : ∀P. False → P と、
 call/cc の型を typeof に追加する。
   */
 typeof(_, false_ind, T) :-
