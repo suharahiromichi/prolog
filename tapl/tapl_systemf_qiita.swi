@@ -3,6 +3,7 @@ Prologによる、System Fの型付プログラム
 ========
 
 2014/05/10 @suharahiromichi
+2014/05/23 @suharahiromichi
 
 TAPL 第25章 System Fの型付けのプログラムをPrologで実装してみた。
 （ただし、存在型は未実装である。）
@@ -402,6 +403,43 @@ go6 :-
         test(Nil, ty_all(x, CList_x)), nl,
         test(Cons, ty_all(x, ty_var(x) -> CList_x -> CList_x)), nl,
         test(IsNil, ty_all(x, CList_x -> ty_bool)).
+
+/**
+### call/cc による古典論理の証明
+
+「call/ccを使って」二重否定除去の
+定理：∀P. ~ ~ P → P を証明する。
+
+二重否定除去の定理は古典論理の範疇に属するので、
+直観論理に対応する型付きラムダ計算の範囲では証明できない。
+そこで、call/cc : ∀P. ((P → False) → P) → P を公理として追加することで、
+実際に証明できることを示す。
+  
+~P は P→False のことであるから、
+∀P. ((P → False) → False) → P を証明する。
+
+否定についての推論規則 ∀P. False → P にあたる false_ind と、
+call/cc の型を typeof に追加する。
+  */
+typeof(_, false_ind, T) :-
+        dbi(ty_all(p, ty_false -> ty_var(p)), T).
+typeof(_, callcc, T) :-
+        dbi(ty_all(p, ((ty_var(p) -> ty_false) -> ty_var(p)) -> ty_var(p)), T).
+
+/**
+次の go7 は成功する。
+その 「Q」は、∀P. ((P → False) → False) → P の型を持ったラムダ式であり、
+その値は、定理 ∀P. ~ ~ P → P が成立する「証拠」であると考えられる。
+  */
+go7 :-
+        Q = tm_tabs(p,
+                    tm_abs(h : (ty_var(p) -> ty_false) -> ty_false,
+                           tm_app(tm_tapp(callcc, ty_var(p)),
+                                  tm_abs(h1 : ty_var(p) -> ty_false,
+                                         tm_app(tm_tapp(false_ind, ty_var(p)),
+                                                tm_app(tm_var(h), tm_var(h1))))))),
+        test(Q,
+             ty_all(p, ((ty_var(p) -> ty_false) -> ty_false) -> ty_var(p))).
 
 /**
 # de Bruijn Index 変換
