@@ -4,6 +4,7 @@ Prologによる、System Fの型付プログラム
 
 2014/05/10 @suharahiromichi
 2014/05/23 @suharahiromichi
+2014/05/23 @suharahiromichi 「call/ccによる古典論理の証明」を見直す。
 
 TAPL 第25章 System Fの型付けのプログラムをPrologで実装してみた。
 （ただし、存在型は未実装である。）
@@ -416,12 +417,39 @@ go6 :-
 実際に証明できることを示す。
   
 `~P` は `P→False` のことであるから、`∀P. ((P → False) → False) → P` を証明する。
+*/
 
-まず、否定についての定理 false_ind : `∀P. False → P` と、
-call/cc の型を typeof に追加する。
+/**
+まず、Falseに当たるデータ型を定義する。False型は要素を持たない型である。
+この文章では、`ty_false`と表記するが、bool型の要素の`tm_false`とは別のものである。
+
+False型についての推論（帰納法）を実施するためには、False型をもらって
+（Falseとは別の）型を返す式が必要になる。
+これは、Coq(Gallina)では、`match f return P with end`と書く。
+withとendの間にあるべき条件節が空なので、fの型は任意の「要素の無い型」であればよい（なければならない）。
+ここでは、False型に限定するものとする。
+*/
+typeof(CTX, return(Tm1, T2), T2) :-
+        typeof(CTX, Tm1, ty_false).
+
+/**
+`return`を使うと、Falseの型の定義にあたる、`Fales_ind`
+は次のように定義でき、`∀P.False → P` の型を持つ。
+これは「ex falso quodlibet」の定理でもある（文献4.）。
+False_indは何度も使うので、定義を保存しておく。
   */
-typeof(_, false_ind, T) :-
-        dbi(ty_all(p, ty_false -> ty_var(p)), T).
+false_ind(tm_tabs(p,
+                  tm_abs(f : ty_false,
+                         return(tm_var(f), ty_var(p))))).
+go70 :-
+        false_ind(False_ind),
+        test(False_ind, ty_all(p, ty_false -> ty_var(p))).
+
+/**
+ついで、call/cc の型を typeof に追加する。
+call/ccの型は型付きラムダ式の範囲で書くことができるが、
+定義の中身を書くことはできない。そのため、型だけをtypeofの中に定義する。
+  */
 typeof(_, callcc, T) :-
         dbi(ty_all(p, ((ty_var(p) -> ty_false) -> ty_var(p)) -> ty_var(p)), T).
 
@@ -431,28 +459,30 @@ typeof(_, callcc, T) :-
 その値は、定理 `∀P. ~ ~ P → P` が成立する「証拠」であると考えられる。
   */
 go7 :-
+        false_ind(False_ind),
         Q = tm_tabs(p,
                     tm_abs(h : (ty_var(p) -> ty_false) -> ty_false,
                            tm_app(tm_tapp(callcc, ty_var(p)),
                                   tm_abs(h1 : ty_var(p) -> ty_false,
-                                         tm_app(tm_tapp(false_ind, ty_var(p)),
+                                         tm_app(tm_tapp(False_ind, ty_var(p)),
                                                 tm_app(tm_var(h), tm_var(h1))))))),
         test(Q,
              ty_all(p, ((ty_var(p) -> ty_false) -> ty_false) -> ty_var(p))).
 
-
 /**
-もっとあからさまにいうと、「call/ccがあると古典論理が証明できる」というのは、
-直観論理で、`∀P. (((P→False)→P)→P) → ((P→False)→False)→P`
-が証明できると言っているに過ぎない。
+もうすこし平たくいうと、「call/ccがあると古典論理が証明できる」というのは、
+`∀P. (((P→False)→P)→P) → ((P→False)→False)→P`の型を持つ項が定義できる、
+すなわち、直観論理で`∀P. ((~P→P)→P) → (~ ~P→P)`が証明できる、
+ということと同じなのであろう。
 */
 go72 :-
+        false_ind(False_ind),
         Q = tm_tabs(p,
                     tm_abs(c : ((ty_var(p) -> ty_false) -> ty_var(p)) -> ty_var(p),
                            tm_abs(h : (ty_var(p) -> ty_false) -> ty_false,
                                   tm_app(tm_var(c),
                                          tm_abs(h1 : ty_var(p) -> ty_false,
-                                                tm_app(tm_tapp(false_ind, ty_var(p)),
+                                                tm_app(tm_tapp(False_ind, ty_var(p)),
                                                        tm_app(tm_var(h), tm_var(h1)))))))),
         test(Q, ty_all(p,
                        (((ty_var(p) -> ty_false) -> ty_var(p)) -> ty_var(p)) ->
@@ -601,6 +631,8 @@ t2 :-                                       % (2)
 2. SWI-Prolog、http://www.swi-prolog.org/
 3. Prologによる、単純型付きラムダ式の型検査と型推論について、
   http://qiita.com/suharahiromichi/items/6d944725636c6cac7400
+4. Pierce他、梅村他訳「ソフトウエアの基礎」、Coqにおける論理
+   http://proofcafe.org/sf/Logic_J.html
 */  
                                                               
 /* end */
