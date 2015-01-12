@@ -1,0 +1,68 @@
+:- dynamic(count/1).
+count(0).
+
+go :-
+        L = [X,Y,Z,U,V],
+        gen(L),
+        bcheck(L),
+        count(C),
+        C1 is C + 1,
+        retract(count(_)), assert(count(C1)),
+        writeln([C1, L]),
+        fail.
+
+%% 先頭からN要素
+head(0, L, []).
+head(N, [X|L], [X|R]) :-
+        N1 is N - 1,
+        head(N1, L, R).
+
+%%
+test :-
+      bcheck([1,2,2,1]).
+
+
+bcheck(L) :-
+        bcheck(1, L).
+bcheck(N, L) :-
+        length(L, Len),
+        N > Len.                            % 成功終了
+bcheck(N, L) :-
+%       write(N),
+        bcheck1(N, L),                      % N番めの要素をチェックする。
+        N1 is N + 1,
+        bcheck(N1, L).
+
+bcheck1(N, L) :-                            % 1から数えてN番め。
+        N1 is N - 1,
+        head(N1, L, R),
+        (R = [], Max = 0; max_list(R, Max)),
+        Max1 is Max + 1,
+        nth1(N, L, X),
+%       writeln([X, Max1]),
+        X =< Max1.                          % ここがチェック。
+
+nth1(N, L, X) :-
+        N1 is N - 1,
+        nth0(N1, L, X).
+
+%% 長さNの自然数の組み合わせのリスト
+gen(L) :-
+        length(L, Len), !,
+        maplist(gen1(Len, 0), L).
+
+gen1(N, M, N2) :-
+        N > M,
+        N1 is M + 1,
+        (N2 = N1;
+         gen1(N, N1, N2)).
+        
+/*        
+gen(N, 0, [M]) :-
+        gen1(N, M).
+gen(N, L, [M|M2]) :-
+        gen1(N, M),
+        L1 is L - 1,
+        gen(N, L1, M2).
+
+*/
