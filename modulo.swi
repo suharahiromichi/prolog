@@ -81,8 +81,8 @@ test(F) :-
         fail.
 test(F).
 
-f1(A, B, D) :- D is truncate(A / B).        % C style
-f2(A, B, D) :- D is floor(A / B).           % Ruby style
+f1(A, B, D) :- D is truncate(A / B).        % C style, Prologの//とrem
+f2(A, B, D) :- D is floor(A / B).           % Ruby style, Prologのdivとmod
 
 % 絶対値最小剰余代表系
 f3(A, B, D) :- D is round(A / B).           % C99 remainder like
