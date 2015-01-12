@@ -62,8 +62,7 @@
 */
 
 modulo(F, A, B, D, M) :-
-        call(F, A, B, D),
-        M is A - D * B.
+        call(F, A, B, D, M).
 
 testcase( 10,  3).
 testcase(-10,  3).
@@ -79,28 +78,48 @@ test(F) :-
         modulo(F, X, Y, D, M),
         format('~d~6+\tdiv\t~d~6+\tis\t~d~6+\t...\t~d~6+\n', [X, Y, D, M]),
         fail.
-test(F).
+test(_).
 
-f1(A, B, D) :- D is truncate(A / B).        % C style, Prologの//とrem
-f2(A, B, D) :- D is floor(A / B).           % Ruby style, Prologのdivとmod
+f1(A, B, D, M) :-                           % C style
+        D is truncate(A / B),
+        M is A - D * B.
+f1p(A, B, D, M) :-                          % Prologの//とrem
+        D is A // B,
+        M is A rem B.
+
+f2(A, B, D, M) :-                           % Ruby style
+        D is floor(A / B),
+        M is A - D * B.
+f2p(A, B, D, M) :-                          % Prologのdivとmod
+        D is A div B,
+        M is A mod B.
 
 % 絶対値最小剰余代表系
-f3(A, B, D) :- D is round(A / B).           % C99 remainder like
+f3(A, B, D, M) :-                           % C99 remainder like
+        D is round(A / B),
+        M is A - D * B.
 
 % ユーグリッド除法（非負剰余代表系）
 % C99では、D = 0.5のとき偶数になるように丸められる。
-f4(A, B, D) :-                              % Pascal Style
-        B > 0 -> D is floor(A / B);
-        D is ceiling(A / B).
+f4(A, B, D, M) :-                           % Pascal Style
+        (B > 0 -> D is floor(A / B);
+         D is ceiling(A / B)),
+        M is A - D * B.
 
-f5(A, B, D) :-                              % unknown
-        A > 0 -> D is floor(A / B);
-        D is ceiling(A / B).
-f6(A, B, D) :- D is ceiling(A / B).         % unknown
+f5(A, B, D, M) :-                           % unknown
+        (A > 0 -> D is floor(A / B);
+         D is ceiling(A / B)),
+        M is A - D * B.
+
+f6(A, B, D, M) :-                           % unknown
+        D is ceiling(A / B),
+        M is A - D * B.
 
 go :-
         writeln('C style'), test(f1),
+        writeln('Prolog //, rem'), test(f1p),
         writeln('Ruby Style'), test(f2),
+        writeln('Prolog div, mod'), test(f2p),
         writeln('C99 remainder like'), test(f3),
         writeln('Pascal Style'), test(f4),
         writeln('unknown style5'), test(f5),
