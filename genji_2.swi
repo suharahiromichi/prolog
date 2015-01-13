@@ -1,0 +1,44 @@
+/**
+源氏香図(その2)
+==========
+  
+2015_01_12
+
+@suharahiromichi  
+
+この文章のこの文章のソースコードは以下にあります。
+  
+https://github.com/suharahiromichi/prolog/blob/master/genji_2.swi
+*/
+
+?- ['genji.swi'].
+
+/**
+制約を満たすように正規化するプログラム
+  */
+normal(L, L2) :-
+        length(L, Len),
+        length(Tbl, Len),
+        normal(1, L, Tbl, L2).
+
+normal(_, [], _, []).
+normal(Gnew, [G|L], Tbl, [G2|L2]) :-
+        nth1(G, Tbl, G2),
+        (var(G2) ->
+         G2 = Gnew,
+         Gnew1 is Gnew + 1;
+         Gnew1 = Gnew),
+        normal(Gnew1, L, Tbl, L2).
+
+/**
+源氏香図を裏返してみる。
+  */
+go1 :-
+        thm(L, T),
+        reverse(L, L1),
+        normal(L1, L2),
+        thm(L2, T2),
+        format('~w \t - ~w\n', [T, T2]),
+        fail.
+        
+/* END */
