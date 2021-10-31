@@ -46,13 +46,14 @@ double (succ X) (succ (succ Y)) :- double X Y.
 
 %% filter
 
-pred filter i : list X, i : (X -> o), o : list X.
-%% 「->」には括弧が要る。
+%% 入れ子の「->」には括弧が要る。
+%% pred は 「-> o」と書くこともできる。
+type filter list X -> (X -> o) -> list X -> o.
+%pred filter i : list X, i : (X -> o), o : list X.
 
 filter [] _ [].
 filter [X | XS] P [X | YS] :- P X, !, filter XS P YS.
 filter [_ | XS] P YS :- filter XS P YS.
-
 
 %% test code
 
@@ -61,5 +62,27 @@ pred go o : list X.
 go X :- filter [true, false, true] is_true X.
 go X :- double (succ zero) Y,
         filter [zero, succ zero, Y] even X.
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% おまけ
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% test2
+%% pred の型宣言は、左の引数から並べればよい。
+%% ただし、二つ目の解のあとにも (Y/n) が質問される。
+
+type filter2 list X -> (X -> o) -> list X -> o.
+%pred filter2 o : list X, i : (X -> o), i : list X.
+
+filter2 [] _ [].
+filter2 [X | XS] P [X | YS] :- P X, !, filter2 XS P YS.
+filter2 XS       P [_ | YS] :- filter2 XS P YS.
+
+pred go2 o : list X.
+
+go2 X :- filter2 X is_true [true, false, true].
+go2 X :- double (succ zero) Y,
+         filter2 X even [zero, succ zero, Y].
 
 %% END
