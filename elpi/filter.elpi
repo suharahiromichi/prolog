@@ -85,4 +85,14 @@ go2 X :- filter2 X is_true [true, false, true].
 go2 X :- double (succ zero) Y,
          filter2 X even [zero, succ zero, Y].
 
+%%
+%% % elpi filter.elpi -test
+%% または
+%% % elpi -test filter.elpi
+%% で、main が実行される。
+%% 
+
+main :- print "\ntest result is\n",
+        go X, print X, fail.
+
 %% END
