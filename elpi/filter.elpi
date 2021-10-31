@@ -1,0 +1,65 @@
+%%
+%% filter.elpi
+%% 
+
+%%
+%% 使い方；
+%% 
+%% % elpi filter.elpi
+%% goal> go X.
+%% Success: X = [true, true]
+%% More? (Y/n)
+%% Success: X = [zero, succ (succ zero)]
+%% 
+
+%% data type
+
+type true bool.
+type false bool.
+
+type zero nat.
+type succ nat -> nat.
+
+
+%% bool
+
+pred is_true i : bool.
+pred is_false i : bool.
+
+is_true true.
+is_false false.
+
+
+%% nat
+
+pred odd i : nat.
+pred even i : nat.
+pred double i : nat, o : nat.
+
+even zero.
+odd (succ X) :- even X.
+even (succ X) :- odd X.
+
+double zero zero.
+double (succ X) (succ (succ Y)) :- double X Y.
+
+
+%% filter
+
+pred filter i : list X, i : (X -> o), o : list X.
+%% 「->」には括弧が要る。
+
+filter [] _ [].
+filter [X | XS] P [X | YS] :- P X, !, filter XS P YS.
+filter [_ | XS] P YS :- filter XS P YS.
+
+
+%% test code
+
+pred go o : list X.
+
+go X :- filter [true, false, true] is_true X.
+go X :- double (succ zero) Y,
+        filter [zero, succ zero, Y] even X.
+
+%% END
