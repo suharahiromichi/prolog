@@ -1,0 +1,40 @@
+/*
+ * Samples
+ *
+ * [https://chelsea.lol/pwhol/]
+ *
+ */
+
+/*
+ * First-Order Horn Clauses (FOHC)
+ * Binary trees:
+ * Specification of terms and predicate for counting the nodes in the tree.
+ */
+
+/* Signature declarations: */
+
+kind bintree type -> type.
+type empty   bintree A.
+type node    A -> bintree A -> bintree A -> bintree A.
+
+/* Program definition: */
+
+%pred nodeCount i:(bintree A), o:int.
+type nodeCount bintree A -> int -> o.
+nodeCount empty 0.
+nodeCount (node _ T1 T2) (1 + N1 + N2) :-
+        nodeCount T1 N1,
+        nodeCount T2 N2.
+
+/* Example goal: */
+
+pred go.
+go :- sigma M \ nodeCount
+        (node 1 (node 2 (node 3 empty empty) (node 4 empty empty)) (node 5 empty empty))
+        M,
+        print M.
+
+/* Answer set substitution: M = 5 */
+
+%% END
+
