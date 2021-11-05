@@ -28,13 +28,125 @@ nodeCount (node _ T1 T2) (1 + N1 + N2) :-
 
 /* Example goal: */
 
-pred go.
-go :- sigma M \ nodeCount
-        (node 1 (node 2 (node 3 empty empty) (node 4 empty empty)) (node 5 empty empty))
-        M,
-        print M.
+pred go1.
+go1 :- sigma M \ nodeCount
+       (node 1 (node 2 (node 3 empty empty) (node 4 empty empty)) (node 5 empty empty))
+       M,
+       print M.
 
 /* Answer set substitution: M = 5 */
 
-%% END
+/*
+ * coding horn clauses:
+ * Declare propositional constants of type o and write program clauses to
+ * specify relationships between the propositional variables. The
+ * implication of the object logic (FOHC) is encoded as implication in
+ * the ambient logic (FOHH).
+ *
+ * Example from p. 78 of PwHOL.
+ *
+ */
 
+/* Signature declarations: */
+type q, r, s, t, u o.
+
+/* Program definition: */
+s :- r, q.
+t :- q, u.
+q :- r.
+
+/* Proof of r => s */
+pred go2.
+go2 :- r => s.
+
+/*
+go2 :- (s :- r).
+*/
+
+/*
+これとも同じ；
+r.
+go2 :- s.
+*/
+
+/*
+ * Higher-Order Horn Clauses (HOHC)
+ * Higher-order predicate Filter a list by items that are flagged using
+ * a higher-order predicate. We call this predicate sublist and it takes
+ * a functional argument (order > 1) representing a polymorphic formula.
+ * 
+ * sublist definition from p. 127 of PwHOL.
+ */
+
+/* Signature declarations: */
+type sublist (A -> o) -> list A -> list A -> o.
+type flagged A -> o.
+type v, w, x, y, z A.
+
+/* Program definition: */
+sublist P (X :: L) (X :: K) :- P X, sublist P L K.
+sublist P (_ :: L) K :- sublist P L K.
+sublist _ nil nil.
+
+flagged x, flagged y, flagged z.
+/*
+これは、以下と同じ：
+flagged x.
+flagged y.
+flagged z.
+*/
+
+%% Example goal:
+pred go3.
+go3 :- sigma L \ sublist flagged (cons v (cons w (cons x (cons y (cons z nil))))) L,
+       print L.
+
+%% Answer set substitution: L = cons x (cons y (cons z nil))
+
+/*
+ * Higher-Order Hereditary Harrop Formulas (HOHH)
+ * Encoding type inference for a fragment of minimal logic
+ * - Declare a kind for object logic types and types for object logic type constructors
+ * - Declare a kind for object logic expressions and types for
+ * application and abstraction and a predicate for typing
+ * - Declare a type representing object logic typing
+ * - Write program clauses to specify the type inference rules
+ *
+ * Higher-order: The type of fun, the constant representing function
+ * abstraction, has order 2.
+ * Hereditary Harrop: The goal in the second tp_pred predicate
+ * specification has universal quantification and implication in the  goal.
+ *
+ * Example modified from p.103 of Types and Programming Languages by B. Pierce.
+ * Discussion of a similar encoding using higher-order abstract syntax
+ * can be found on p. 17 of Hybrid: A Definitional Two-Level Approach to
+ * Reasoning with Higher-Order Abstract Syntax by A. Felty and
+ * A. Momigliano.
+ */
+
+/* Signature declarations: */
+kind tp     type.
+type basetp tp.
+type arr    tp -> tp -> tp.
+kind expr   type.
+type app    expr -> expr -> expr.
+type fun    (expr -> expr) -> expr.
+type istp   expr -> tp -> o.
+
+/* Program definition: */
+istp (app E1 E2) T1 :- istp E1 (arr T2 T1) & istp E2 T2.
+istp (fun (x \ E x)) (arr T1 T2) :- pi x \ (istp x T1 => istp (E x) T2).
+
+%% Example goal:
+pred go4.
+go4 :- sigma T \ istp (fun (f \ (fun (x \ (app f x))))) T,
+       print T.
+
+%% Answer set substitution: T = arr (arr T1 T2) (arr T1 T2)
+
+/*
+ * We find that the Church numeral for 1, 
+ * λfλx (f x), has type (T1 → T2) → T1 → T2
+ */
+
+%% END
