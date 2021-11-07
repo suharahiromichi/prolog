@@ -1,0 +1,15 @@
+type    sublist	        (A -> o) -> list A -> list A -> o.
+type    flagged         A -> o.
+type    v, w, x, y, z   A.
+
+sublist P (X :: L) (X :: K) :- P X, !, sublist P L K.
+sublist P (_ :: L) K :- sublist P L K.
+sublist _ nil nil.
+
+flagged x, flagged y, flagged z.
+
+%% Sample Gole
+%% goal> sublist flagged [v,x,w,y,z] X.
+%% X = [x, y, z]
+
+%% END

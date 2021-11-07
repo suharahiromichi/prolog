@@ -1,0 +1,37 @@
+kind    list     type -> type.
+type    cons      A -> list A -> list A.
+
+
+%% sample A
+
+type	reverse0 list A -> list A -> o.
+type	rev0     list A -> list A -> list A -> o.
+
+reverse0 L K :- rev0 L K nil.
+rev0 nil L L.
+rev0 (X :: L) K M :- rev0 L K (X :: M).
+
+
+%% sample B
+
+type	reverse  list A -> list A -> o.
+reverse L K :-
+        pi rev \ (
+                    (pi l \
+                        rev nil l l),
+                    (pi x \ pi l \ pi k \ pi m \
+                        (rev (cons x l) k m :- rev l k (cons x m)))
+                 ) => rev L K nil.
+
+
+%% sample C
+
+type	reverse2 list A -> list A -> o.
+reverse2 L K :-
+        pi rv \ (
+                   (rv nil K),
+                   (pi x \ pi l \ pi k \
+                       (rv (x :: l) k :- rv l (x :: k)))
+                ) => rv L nil.
+
+%% END
