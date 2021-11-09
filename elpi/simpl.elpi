@@ -1,0 +1,88 @@
+%% term
+kind term       type.
+
+type tvar       int -> term.
+type tconst     int -> term.
+type app        term -> term -> term.
+type lam        literal -> term -> term.
+% case t of l のとき t が construct n なら、nth n l が選ばれる。
+type construct  int -> term.
+type case       term -> list term.
+type fix        literal -> term -> term.
+
+%% stack
+kind stack_element type.
+kind stack      type.
+kind state      type.
+
+type zapp       term -> stack_element.
+type zcase      list term -> stack_element.
+type zfix       tvar -> term -> stack_element.
+
+
+%% stack = list stack_element
+%% state = term * stack
+
+pred eval i:(list term), i:term, o:term, o:state.
+eval Env T V :-
+        pi cbn\
+        (pi t\ u\ s\ t2\ s2\
+         cbn (app t u) s t2 s2 :- cbn t (zapp u) :: s t2 s2),
+        (pi t\ l\ s\ t2\ s2\
+         cbn (case t l) s t2 s2 :- cnb t (zcase l) :: s t2 s2),
+        (pi f\ t\ s\ t2\ s2\
+         cbn (fix f t) (zapp u :: s) t2 s2 :- cbn u (zfix f t) :: s t2 s2),
+        (pi x\ t\ s\ t2\ s2\
+         cbn (lam x t) s t2 s2 :- compute_arrow x t s cbn t2 s2),
+        (pi i\    s\ t2\ s2\
+         cbn (construct i) t2 s2 :- compute_algebric i s cbn t2 s2),
+        (pi c\    s\ t2\ s2\
+         cbn (const c) s t :- const_value Env c t1, cbn t1 s t2 s2),
+        (pi t\    s\       cbn t s t s)
+        => cbn T [] V.
+
+pred const_value i:(list term), i:int. o:term.
+const_value Env N Val :- std.nth N Env Val.
+
+pred compute_arrow i:term, i:term, i:(list stack_element),
+                   i:(term -> list stack_element -> term -> list stack_element -> o),
+                   o:term, o:list stack_element.
+compute_arrow X T (zapp (U :: S)) K T2 S2 :-
+        subst T U X T1,
+        K T1 S T2 S2.
+compute_arrow X T S _ (lam X T) S.
+
+pred compute_algebric i:int, i:(list stack_element),
+                      i:(term -> list stack_element -> term -> list stack_element -> o),
+                      o:term, o:list stack_element.
+compute_algebric I Stack K T2 S2 :-
+        strip_zapp Stack A2 S2,
+        (pi ca\
+         (pi l\ q\ t2\ s2\
+          ca (zcase l :: q) t2 s2 :-
+                  std.nth I L T,
+                      std.map zapp A2 A3,
+                          atd.app A3 Q A4,
+                              K T A4 t2 s2),
+         (pi f\ t\ q\ t2\ s2\
+          ca (zfix f t :: q) t2 s2 :-
+                  subst T (fix F T) F T1,
+                  K T (zapp (app (constrict I) A2) :: Q) t2 s2),
+         (pi s\
+          ca s (construct I) s))
+        => ca Stack T2 S2.
+
+pred strip_zapp i:(list term), o:(list term), o:(list term).
+strip_zapp S A2 S2 :-
+        pi aux\ acc\
+        (aux acc (zapp x :: q) a2 s2 :- aux (x :: acc) q a2 s2),
+        (aux acc s             a2 s  :- std.rev acc a2)
+        => aux [] S A2 S2.
+
+pred quote      i:term, i:(list stack_element), o:term.
+quote T (zapp U :: Q) T2 :- quote (app T U) Q T2.
+quote T (zcase L :: Q) T2 :- quote (case T L) Q T2.
+quote T (zfix F T :: Q) T2 :- quote (fix F T) (zapp U :: Q) T2.
+quote T [] T.
+
+%% END
