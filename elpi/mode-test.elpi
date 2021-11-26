@@ -1,0 +1,119 @@
+%% input mode 指定のとき、
+%% goal(caller) が unboundな変数を含むなら fail する。
+%% ただし、callee とcallerが変数同士なら success する。
+
+pred t1 i:int.                              %fail
+pred t2 i:int.
+pred t3 o:int.
+pred t4 o:int.
+pred t5 i:int.
+pred t6 i:int.
+pred t7 o:int.
+pred t8 o:int.
+
+t1 1.
+t2 1.
+t3 1.                                       %fail
+t4 1.
+t5 X :- X = 1.
+t6 X :- X = 1.
+t7 X :- X = 1.
+t8 X :- X = 1.
+
+pred goal.
+goal :-
+        print "t1", not (t1 X),             %fail
+        print "t2", t2 1,
+        print "t3", t3 X,
+        print "t4", t4 1,
+        print "t5", t5 X,
+        print "t6", t6 1,
+        print "t7", t7 X,
+        print "t8", t8 1.
+
+%% 
+%% mode i についてのテスト
+%% 
+        
+pred t11 i:int. 
+pred t12 i:int. 
+pred t13 i:int. 
+pred t14 i:int. 
+
+t11 (1 + 1).
+t12 (X + 1).
+t13 (1 + Y).
+t14 (X + Y).
+
+pred goal2.
+goal2 :-
+        print "t11 (1 + 1).t11 (1 + 1)", t11 (1 + 1),
+        print "t12 (X + 1).t12 (1 + 1)", t12 (1 + 1),
+        print "t13 (1 + Y).t13 (1 + 1)", t13 (1 + 1),
+        print "t14 (X + Y).t14 (1 + 1)", t14 (1 + 1),
+
+        print "t11 (1 + 1).t11 (1 + Y)", not (t11 (1 + Y)),
+        print "t12 (X + 1).t12 (1 + Y)", not (t12 (1 + Y)),
+        print "t13 (1 + Y).t13 (1 + Y)", t13 (1 + Y),
+        print "t14 (X + Y).t14 (1 + Y)", t14 (1 + Y),
+
+        print "t11 (1 + 1).t11 (X + 1)", not (t11 (X + 1)),
+        print "t12 (X + 1).t12 (X + 1)", t12 (X + 1),
+        print "t13 (1 + Y).t13 (X + 1)", not (t13 (X + 1)),
+        print "t14 (X + Y).t14 (X + 1)", t14 (X + 1),
+
+        print "t11 (1 + 1).t11 (X + Y)", not (t11 (X + Y)),
+        print "t12 (X + 1).t12 (X + Y)", not (t12 (X + Y)),
+        print "t13 (1 + Y).t13 (X + Y)", not (t13 (X + Y)),
+        print "t14 (X + Y).t14 (X + Y)", t14 (X + Y).
+
+        
+
+
+pred t31 o:int. 
+pred t32 o:int. 
+pred t33 o:int. 
+pred t34 o:int. 
+
+t31 (1 + 1).
+t32 (X + 1).
+t33 (1 + Y).
+t34 (X + Y).
+
+pred goal3.
+goal3 :-
+        print "t31 (1 + 1)", t31 (1 + 1),
+        print "t32 (1 + 1)", t32 (1 + 1),
+        print "t33 (1 + 1)", t33 (1 + 1),
+        print "t34 (1 + 1)", t34 (1 + 1),
+
+        print "t31 (1 + Y)",  (t31 (1 + Y)),
+        print "t32 (1 + Y)",  (t32 (1 + Y)),
+        print "t33 (1 + Y)", t33 (1 + Y),
+        print "t34 (1 + Y)", t34 (1 + Y),
+
+        print "t31 (X + 1)",  (t31 (X + 1)),
+        print "t32 (X + 1)", t32 (X + 1),
+        print "t33 (X + 1)",  (t33 (X + 1)),
+        print "t34 (X + 1)", t34 (X + 1),
+
+        print "t31 (X + Y)",  (t31 (X + Y)),
+        print "t32 (X + Y)",  (t32 (X + Y)),
+        print "t33 (X + Y)",  (t33 (X + Y)),
+        print "t34 (X + Y)", t34 (X + Y).
+
+
+%%
+%% mode o についてのテスト
+%% 
+        
+pred u o:int.
+
+u 1 :- print "u 1".
+u 2 :- print "u 2".
+
+%% u 2 を実行しても、u 1 は通らないので、
+%% mode が o であっても、u 2 は u X, X = 2 の意味でないことが判る。
+
+%% END
+
