@@ -1,0 +1,85 @@
+%%
+%% example
+%%
+%% ``even X, odd X`` を failure にできるプログラム。
+%%
+
+mode (even i).
+mode (odd i).
+
+%% uvar as X なら var X, !, は要らない。
+even X :- var X, !, declare_constraint (even X) [X].
+odd X :- var X, !, declare_constraint (odd X) [X].
+even 0 :- print "even 0".
+odd 1 :- print "odd 1".
+even X :- X > 1, Y is X - 1, print "odd" X, odd Y.
+odd X :- X > 0, Y is X - 1, print "even" X, even Y.
+
+constraint even odd {
+  :name "even is not odd"
+   rule (even X) (odd X) <=> false.
+}
+
+%%
+%% Example of first order rules
+%% https://github.com/LPCIC/elpi/blob/master/tests/sources/chrGCD.elpi
+%%
+%% 99と66の最大公約数が11であるとき、
+%% ``gcd 99 X, gcd 66 X, X = p11`` が成り立つ。
+%%
+
+mode (gcd i i).
+kind prime type.
+type p11 prime.
+type p7 prime.
+
+gcd A (uvar as B) :- !, declare_constraint (gcd A B) [B].
+
+% assert result is OK
+%% ここは素数でないといけないようだ。
+gcd 11 p11 :- print "prime 11 solved".
+gcd 7 p7 :- print "prime 7 solved".
+
+main0 :- gcd 99 X, gcd 66 X, gcd 14 Y, gcd 22 X, gcd 77 Y,
+         % we then force a resumption to check only GCDs are there
+         X = p11, Y = p7.
+
+main1 :- gcd 99 X, gcd 66 X, gcd 22 X, gcd 77 X, X = p11.
+main2 :- gcd 14 Y, gcd 77 Y, Y = p7.
+
+constraint gcd {
+  rule (gcd A _) \ (gcd B _) | (A = B).
+  rule (gcd A _) \ (gcd B X) | (A < B) <=> (C is (B - A), gcd C X).
+}
+
+%%
+%% Example of high order rules
+%%
+%%
+%%
+
+mode (term i o).
+term (app HD ARG) TGT :- term HD (arrow SRC TGT), term ARG SRC.
+term (lam F) (arrow SRC TGT) :- pi x\ term x SRC => term (F x) TGT.
+term (uvar as X) T :- declare_constraint (term X T) [X].
+
+constraint term {
+  rule (GX ?- term (uvar K LX) TX)
+     \ (GY ?- term (uvar K LY) TY)
+     | (compatible GX LX GY LY CTXEQS)
+   <=> [TX = TY | CTXEQS].
+}
+
+compatible _ [] _ [] [] :- !.
+compatible GX [X|XS] GY [Y|YS] [TX = TY | K] :-
+ (GX => term X TX),
+ (GY => term Y TY),
+ !,
+ compatible GX XS GY YS K.
+compatible _ _ _ _ [].
+
+main10 :-
+  (term (lam x\ lam y\ app (app (F x y) x) y) T1),
+  (term (lam y\ lam x\ app (app (F x y) y) x) T2).
+
+%% END
