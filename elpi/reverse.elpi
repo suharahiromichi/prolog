@@ -1,37 +1,73 @@
+%% 
+%% 述語の i/o の指定はほぼ意味がない。iを指定すると正しく解が求められない。
+%% 
+%% (*) reverse X [1,2]. が2解目を求めにいって、無限バックトラックに入るのを回避する。
+%% この処置は i/o では不可能だろう。
+%%
+%% reverse X Y に対して、X = [], Y = [] を返すが正しい動作といえるだろう。
+%% 
+
 kind    list     type -> type.
 type    cons      A -> list A -> list A.
 
-
+%% 
 %% sample A
-
-type	reverse0 list A -> list A -> o.
-type	rev0     list A -> list A -> list A -> o.
+%% 
+%%type reverse0 list A -> list A -> o.
+%%type rev0     list A -> list A -> list A -> o.
+pred reverse0  o:list A, o:list A.
+pred rev0      o:list A, o:list A, o:list A.
 
 reverse0 L K :- rev0 L K nil.
-rev0 nil L L.
+rev0 nil L L :- !.                          % (*)
 rev0 (X :: L) K M :- rev0 L K (X :: M).
 
-
+%% 
 %% sample B
+%% 
+%type reverse  list A -> list A -> o.
+pred reverse   o:list A, o:list A.
 
-type	reverse  list A -> list A -> o.
 reverse L K :-
         pi rev \ (
                     (pi l \
-                        rev nil l l),
+                        rev nil l l :- !),  % (*)
                     (pi x \ pi l \ pi k \ pi m \
                         (rev (cons x l) k m :- rev l k (cons x m)))
                  ) => rev L K nil.
 
-
+%% 
 %% sample C
+%% 
+%type reverse2 list A -> list A -> o.
+pred reverse2  o:list A, o:list A.
 
-type	reverse2 list A -> list A -> o.
 reverse2 L K :-
         pi rv \ (
-                   (rv nil K),
+                   (rv nil K :- !),         % (*)
                    (pi x \ pi l \ pi k \
                        (rv (x :: l) k :- rv l (x :: k)))
                 ) => rv L nil.
+
+%%
+%% sample D
+%% 
+%% SWI-Prolog の実装
+%%
+
+pred reverse3  o:list A, o:list A.
+pred rev3      o:list A, o:list A, o:list A, o:list A.
+
+reverse3 A B :- rev3 A [] B B.
+rev3 [] A A [].
+rev3 [B | A] C D [_ | E] :- rev3 A [B | C] D E.
+
+pred reverse4  o:list A, o:list A.
+reverse4 L K :-
+        pi rv \ (
+                   (rv [] X X []),
+                   (pi A \ pi B \ pi C \pi D \pi E \
+                    (rv [B | A] C D [_ | E] :- rv A [B | C] D E))
+                ) => rv L [] K K.
 
 %% END
