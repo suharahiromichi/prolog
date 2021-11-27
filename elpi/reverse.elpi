@@ -65,9 +65,9 @@ rev3 [B | A] C D [_ | E] :- rev3 A [B | C] D E.
 pred reverse4  o:list A, o:list A.
 reverse4 L K :-
         pi rv \ (
-                   (rv [] X X []),
-                   (pi A \ pi B \ pi C \pi D \pi E \
-                    (rv [B | A] C D [_ | E] :- rv A [B | C] D E))
+                   (rv [] A A []),
+                   (pi a b c d e\
+                    (rv [b | a] c d [_ | e] :- rv a [b | c] d e))
                 ) => rv L [] K K.
 
 %% END
