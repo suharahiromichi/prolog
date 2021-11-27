@@ -24,7 +24,7 @@ constraint even odd {
 %% Example of first order rules
 %% https://github.com/LPCIC/elpi/blob/master/tests/sources/chrGCD.elpi
 %%
-%% 99と66の最大公約数が11であるとき、
+%% 99と66の最大公約数が11であるので、
 %% ``gcd 99 X, gcd 66 X, X = p11`` が成り立つ。
 %%
 
@@ -44,13 +44,40 @@ main0 :- gcd 99 X, gcd 66 X, gcd 14 Y, gcd 22 X, gcd 77 Y,
          % we then force a resumption to check only GCDs are there
          X = p11, Y = p7.
 
-main1 :- gcd 99 X, gcd 66 X, gcd 22 X, gcd 77 X, X = p11.
+main1 :- gcd 99 X, gcd 77 X, X = p11.
 main2 :- gcd 14 Y, gcd 77 Y, Y = p7.
 
 constraint gcd {
-  rule (gcd A _) \ (gcd B _) | (A = B).
-  rule (gcd A _) \ (gcd B X) | (A < B) <=> (C is (B - A), gcd C X).
+  rule (gcd A _) \ (gcd B _) | (A = B).     % rule1
+  rule (gcd A _) \ (gcd B X) | (A < B) <=> (C is (B - A), gcd C X). % rule2
 }
+
+%% 
+%% gcd A Y, gcd B X, A = B
+%% ------------------------ rule1
+%% true
+%%
+%% 
+%% gcd A Y, gcd B X, A < B
+%% ------------------------ rule2
+%% gcd A Y, gcd (B - A) X
+%% 
+
+%% 
+%% gcd 14 Y, gcd 77 Y
+%% ------------------- rule2
+%% gcd 14 Y, gcd 63 Y
+%% ------------------- rule2
+%% gcd 14 Y, gcd 7  Y
+%% ------------------- gcd 7 Y
+%% gcd 14 Y, gcd 7 p7
+%% ------------------- rule2
+%% gcd 7  Y, gcd 7 p7
+%% ------------------- gcd 7 Y
+%% gcd 7 p7, gcd 7 p7
+%% ------------------- rule1
+%% true
+%% 
 
 %%
 %% Example of high order rules
