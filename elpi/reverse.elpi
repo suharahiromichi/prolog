@@ -1,7 +1,7 @@
 %% 
 %% 述語の i/o の指定はほぼ意味がない。iを指定すると正しく解が求められない。
 %% 
-%% (*) reverse X [1,2]. が2解目を求めにいって、無限バックトラックに入るのを回避する。
+%% (*) reverse X [1,2]. が2解目を求めにいって、無限再帰に入るのを回避する。
 %% この処置は i/o では不可能だろう。
 %%
 %% reverse X Y に対して、X = [], Y = [] を返すが正しい動作といえるだろう。
@@ -45,8 +45,8 @@ pred reverse2  o:list A, o:list A.
 reverse2 L K :-
         pi rv \ (
                    (rv nil K :- !),         % (*)
-                   (pi x \ pi l \ pi k \
-                       (rv (x :: l) k :- rv l (x :: k)))
+                   (pi x \ pi n \ pi m \
+                       (rv (x :: n) m :- rv n (x :: m)))
                 ) => rv L nil.
 
 %%
