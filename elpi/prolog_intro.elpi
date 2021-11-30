@@ -1,0 +1,97 @@
+kind person type.
+type namihei person.
+type umihei person.
+type katsuo person.
+type masuo person.
+type tarao person.
+type fune person.
+type wakame person.
+type sazae person.
+
+%% 男性
+pred male o:person.
+male namihei.
+male umihei.
+male katsuo.
+male masuo.
+male tarao.
+
+%% 女性
+pred female o:person.
+female fune.
+female wakame.
+female sazae.
+
+%% 父親
+pred father_of o:person, o:person.
+father_of namihei sazae.
+father_of namihei katsuo.
+father_of namihei wakame.
+father_of masuo tarao.
+
+%% 母親
+pred mother_of o:person, o:person.
+mother_of fune sazae.
+mother_of fune katsuo.
+mother_of fune wakame.
+mother_of sazae tarao.
+
+%% 両親
+pred parents_of o:person, o:person.
+parents_of X Y :- father_of X Y.
+parents_of X Y :- mother_of X Y.
+
+%% 子供
+pred son_of o:person, o:person.
+son_of X Y :- parents_of Y X, male X.
+
+pred daughter_of o:person, o:person.
+daughter_of X Y :- parents_of Y X, female X.
+
+%% 祖父母
+pred grandfather_of o:person, o:person.
+grandfather_of X Y :- parents_of Z Y, father_of X Z.
+
+pred grandmother_of o:person, o:person.
+grandmother_of X Y :- parents_of Z Y, mother_of X Z.
+
+
+%% 
+
+pred max i:int, i:int, o:int.
+max A B B :- A =< B, !.
+max A _ A.
+
+
+
+
+kind nat type.
+
+type z nat.
+type s nat -> nat.
+
+
+
+pred le o:nat, o:nat.                       % ここの「,」に注意してください。
+
+le X X.
+le X (s Y) :- le X Y.
+
+pred go.
+go :- le X Y, print X Y, fail.
+
+
+pred mem o:list A, o:A.
+mem [A | _] A.
+mem [_ | S] A :- mem S A.
+
+
+pred even o:nat.
+even z.
+even (s (s X)) :- even X.
+
+pred leven o:list nat, o:list nat.
+
+leven [] [].
+leven [X | XS] [X | YS] :- even X, !, leven XS YS.
+leven [_ | XS] YS :- leven XS YS.
