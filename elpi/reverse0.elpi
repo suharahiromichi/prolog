@@ -1,0 +1,20 @@
+kind    list     type -> type.
+type    cons      A -> list A -> list A.
+type    nil       list A.
+
+%% 
+%% sample A
+%% 
+%%type reverse0 list A -> list A -> o.
+%%type rev0     list A -> list A -> list A -> o.
+kind    list     type -> type.
+type    cons      A -> list A -> list A.
+type    nil       list A.
+
+pred reverse0  o:list A, o:list A.
+pred rev0      o:list A, o:list A, o:list A.
+
+reverse0 L K :- rev0 L K nil.
+rev0 nil L L :- !.                          % (*)
+rev0 (cons X L) K M :- rev0 L K (cons X M).
+
