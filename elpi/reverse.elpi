@@ -7,28 +7,28 @@
 %% reverse X Y に対して、X = [], Y = [] を返すが正しい動作といえるだろう。
 %% 
 
-kind    list     type -> type.
-type    cons      A -> list A -> list A.
 
 %% 
 %% sample A
 %% 
-%%type reverse0 list A -> list A -> o.
-%%type rev0     list A -> list A -> list A -> o.
-pred reverse0  o:list A, o:list A.
-pred rev0      o:list A, o:list A, o:list A.
+%% qiita 用
+%% 
+pred    reverse  o:list A, o:list A.
 
-reverse0 L K :- rev0 L K nil.
-rev0 nil L L :- !.                          % (*)
-rev0 (X :: L) K M :- rev0 L K (X :: M).
+reverse L K :-
+        pi rv \ (
+                   (rv nil K :- !),
+                   (pi x \ pi n \ pi m \
+                       (rv (x :: n) m :- rv n (x :: m)))
+                ) => rv L nil.
 
 %% 
 %% sample B
 %% 
-%type reverse  list A -> list A -> o.
-pred reverse   o:list A, o:list A.
+%type reverse1  list A -> list A -> o.
+pred reverse1   o:list A, o:list A.
 
-reverse L K :-
+reverse1 L K :-
         pi rev \ (
                     (pi l \
                         rev nil l l :- !),  % (*)
