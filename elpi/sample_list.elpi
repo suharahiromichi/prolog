@@ -1,0 +1,210 @@
+type a, b, c, d, e, f test.                 % test data
+
+%%
+%% car, cdr, cons
+%% 
+pred car o:T, o:list T.
+car A (A :: _).
+
+pred cdr o:list T, o:list T.
+cdr A (_ :: A).
+
+pred cons o:T, o:list T, o:list T.
+cons A B (A :: B).
+%% これがあれば、carとcdrは要らない。
+
+%%
+%% member
+%% 
+pred member o:T, o:list T.
+member A (A :: _).
+member A (_ :: L) :- member A L.
+
+%%
+%% last
+%% 
+pred last o:list T, o:T.
+last [A] A :- !.                      % 決定的なので、代替節を捨てる。
+last (_ :: L) A :- last L A.
+
+%%
+%% add_all
+%% 
+pred add_all2 i:list int, o:int.     % 第1引数が変数ならエラーにする。
+add_all2 A N :- add_all3 A 0 N.
+
+pred add_all3 i:list int, i:int, o:int.
+add_all3 nil N N :- !.
+add_all3 (A :: L) M N :- MM is M + A, add_all3 L MM N.
+
+
+pred add_all i:list int, o:int.      % 第1引数が変数ならエラーにする。
+
+add_all A N :-
+        pi aa3 \ (
+                     (pi N \ (aa3 nil N N :- !)),
+                     (pi A \ pi L \ pi M \ pi N \ pi MM \
+                      (aa3 (A :: L) M N :- MM is M + A, aa3 L MM N))
+                 ) => aa3 A 0 N.
+
+%%
+%% nth (0からにする)
+%%
+pred nth i:int, o:T, o:List T.
+nth N A (A :: _) :- N =< 0, !.           % 0以下にしないと無限ループ。
+nth N A (_ :: L) :- M is N - 1, nth M A L.
+
+%% nth 1 X [1,2,3]. なら X = 2
+%% nth N 2 [1,2,3]. から N = 2 は求められない。
+
+%% 
+%% select 取り出した要素と残りの要素
+%% 
+%% i/oを固定せずに、いろいろな使い方ができる。
+%% 
+pred select o:list T, o:T, o:list T.
+select (A :: L) A L.
+select (B :: L) A (B :: R) :- select L A R.
+
+%% select [1,2,3] 2 L. なら、L=[1,3]
+%% select [1,2,3] X L. なら、X=1, L=[2,3]、X=2, L=[1,3]、X=3, L=[1,2]
+%% select L, 2, [1,3]. なら、L=[2,1,3] または L=[1,2,3] または L=[1,3,2]
+
+%%
+%% assoc
+%% 
+type pair T -> S -> TS.
+pred assoc o:T, o:S, o:list TS.
+assoc A B ((pair A B) :: _) :- !.           % 複数解を許さないなら !.
+assoc A B (_ :: L) :- assoc A B L.
+%% 
+%% assoc 1 a L, assoc 2 b L, assoc 1 X L. なら X=a, L=[pair 1 a, pair 2 b | X0]
+%% 追加して取り出すこともできる。
+%%
+
+%%
+%% pack (重複を削除する)
+%%
+pred pack i:list T, o:list T.
+pack nil nil :- !.
+pack (A :: L) R :- member A L, !, pack L R. % member は決定的に動く。
+pack (A :: L) (A :: R) :- pack L R.
+
+%%
+%% divide (リストを指定位置で分割する)
+%% 
+pred divide i:int, o:list T, o:list T, o:list T.
+divide N L nil L :- N =< 0.
+divide N (A :: L) (A :: R) T :- N > 0, !, M is N - 1, divide M L R T.
+%%
+%% divide 4 [1,2,3,4,5,6,7] L R. なら L=[1, 2, 3, 4], R=[5,6,7]
+%% divide 4 X [1,2,3,4] [5,6,7]. なら X=[1,2,3,4,5,6,7] あまり使い道ないかも。
+%%
+
+%%
+%% divide_at (リストを指定要素で分割する)
+%% 
+pred divide_at o:T, o:list T, o:list T, o:list T.
+
+divide_at A [A|L] [] [A|L].      % 複数解あるので、ここで「!」しない！
+divide_at A [B|L] [B|R] T :- divide_at A L R T.
+
+%%
+%% divide_at 3 [1,2,3,1,2,3,4] X Y.
+%% なら X=[1,2],Y=[3,1,2,3,4]
+%% または X=[1,2,3,1,2],Y=[3,1,2,3,4]
+%%
+%% divide_at A L [1,2,3] [4,5,6]. なら A=4, L=[1,2,3,4,5,6] と連結できる。
+%% 
+
+%%
+%% delete
+%%
+pred delete i:T, o:list T, o:list T.
+delete _ [] [].
+delete A [A|L] R :- !, delete A L R. % ここにcutがないと、削除しない代替解を出してしまう。
+delete A [B|L] [B|R] :- delete A L R.
+%%
+%% delete 3 [1,2,3,1,2,3,4] X. ならば X=[1,2,1,2,4]
+%%
+%% 第1要素を変数にしたら、リストの先頭の要素を削除する。使い道はないか。
+%%
+
+%%
+%% delete_nth
+%%
+pred delete_nth i:int, o:list T, o:list T.
+delete_nth N [_|L] L :- N =< 0, !.          % 0 以下かつcutでチェックする。
+delete_nth N [A|L] [A|R] :- M is N - 1, delete_nth M L R.
+
+%%
+%% insert
+%%
+pred insert i:int, i:T, o:list T, o:list T.
+insert N A L [A|L] :- N =< 0, !.
+insert N A [B|L] [B|R] :- M is N - 1, insert M A L R.
+%%
+%% insert 2 c [a, b, d, e] X. なら X=[a,b,c,d,e]
+%%
+
+%%
+%% insert_after (AのうしろにBを入れる)
+%% 
+pred insert_after i:T, i:T, o:list T, o:list T.
+insert_after A B [A|L] [A,B|L].
+insert_after A B [C|L] [C|R] :- insert_after A B L R.
+
+%%
+%% insert_after c a [b,c,d,c,e] X.
+%% ならば X = [b,c,a,d,c,e] 
+%% または X = [b,c,d,c,a,e] 挿入は1箇所なので、代替解となる。
+%%
+%%
+%% insert_after c a X [b,c,a,d,c,a,e].
+%% ならば X = [b,c,d,c,a,e]
+%% または X = [b,c,a,d,c,e] 削除できる。
+%% 
+
+%%
+%% list_length
+%%
+pred list_length2 i:list T, o:int.
+pred list_length3 i:list T, i:int, o:int.
+list_length2 L N :- list_length3 L 0 N.
+list_length3 [] N N :- !.
+list_length3 [_|L] N M :- NN is N + 1, list_length3 L NN M.
+
+pred list_length i:list T, o:int.
+list_length L N :-
+        pi ll \ (
+                  (pi N \ ll [] N N :- !),
+                  (pi L N NN M \ ll [_|L] N M :- NN is N + 1, ll L NN M)
+                ) => ll L 0 N.
+
+%%
+%% append
+%% 
+pred append o:list T, o:list T, o:list T.
+append [] L L.       % ここにcutを入れないと、非決定性の分割ができる。
+append [A|L] R [A|LR] :- append L R LR.
+%% 
+%% append X Y [a,b,c,d,e].
+%% X= [], Y=[a,b,c,d,e]、または X= [a], Y=[b,c,d,e]、または（略）
+%%
+
+%%
+%% flat これは型が定義できないので、使えない。
+%%
+%pred flat2 i:list (list T), o:list T.
+%pred flat3 i:list (list T), o:list (list T), o:list (list T).
+
+flat2 A B :- flat3 A [] B, !.
+flat3 [] X X.                          % 私はここでcutするのが好き。
+flat3 [A|L] R ANS :- flat3 A X ANS, flat3 L R X.
+flat3 A X [A|X].
+%% 
+%% flat2 [a,[b,[c],d],[e,f]] X.
+%% 
+
+%% END
+
