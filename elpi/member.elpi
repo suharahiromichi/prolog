@@ -1,0 +1,20 @@
+%%
+%% λProlog の member 述語
+%% 
+type member int -> list int -> prop.
+pi N \ pi S \ member N (cons N S).
+pi N \ pi M \ pi S \ member N S => member N (cons M S).
+
+type goal prop.
+goal :- member 2 (cons 1 (cons 2 (cons 2 (cons 3 nil)))).
+
+
+%%
+%% 一般的なお Prolog の member 述語
+%% ∀を省いたかたち、矢印が逆。
+%% 
+pred member0 o:T, o:list T.
+member0 A (A :: _).
+member0 A (_ :: L) :- member0 A L.
+
+%% END
