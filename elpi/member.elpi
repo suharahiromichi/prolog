@@ -2,8 +2,9 @@
 %% λProlog の member 述語
 %% 
 type member int -> list int -> prop.
-pi N \ pi S \ member N (cons N S).
+pi N \ pi S \ member N (cons N S).      % ∀N.∀S.member (cons N S).
 pi N \ pi M \ pi S \ member N S => member N (cons M S).
+                                        % ∀N.∀M.∀S.(member N S -> member N (cons M S)
 
 type goal prop.
 goal :- member 2 (cons 1 (cons 2 (cons 2 (cons 3 nil)))).
@@ -13,8 +14,34 @@ goal :- member 2 (cons 1 (cons 2 (cons 2 (cons 3 nil)))).
 %% 一般的なお Prolog の member 述語
 %% ∀を省いたかたち、矢印が逆。
 %% 
+%% Coq の cons 演算子
+%% 
 pred member0 o:T, o:list T.
 member0 A (A :: _).
 member0 A (_ :: L) :- member0 A L.
 
+%%
+%% ISO-Prolog の cons演算子。
+%% 
+pred member1 o:T, o:list T.
+member1 A [A | _].
+member1 A [_ | L] :- member1 A L.
+
 %% END
+
+%% 
+%% 参考 ELPI のリスト表記について
+%% 
+%% print で チェックライトできます。引数は1個だけ。
+%%
+pred test.
+test :-
+        print [1, 2, 3, 4],
+        print (1 :: 2 :: 3 :: 4 :: []),
+        print [1, 2, 3, 4 | []],         % LispのS式の書き方とおなじ…
+        print (1 :: 2 :: 3 :: [4]),
+        print [1, 2, 3 | [4]],        % この書き方が奇妙に見えるなら、
+        print [1 | [2 | [3 | [4]]]].  % [A | B] で cons A B とだけ、覚えておけばよい。
+%%
+%% 参考。終わり。
+%%
