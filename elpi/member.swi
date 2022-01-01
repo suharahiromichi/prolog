@@ -1,0 +1,12 @@
+%%
+%%  SWI-Prolog
+%% 
+member(A, [A | _]).
+member(A, [_ | L]) :- member(A, L).
+
+goal :- member(2, [1, 2, 2, 3]).
+
+%% 
+%% ?-trace.
+%% ?-goal.
+%% 
