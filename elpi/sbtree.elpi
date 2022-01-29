@@ -1,0 +1,56 @@
+pred check_sbtree o:int, o:int, o:int, o:int.
+
+/*
+(* SB木のInductiveによる表現 *)
+Inductive sbtree : nat -> nat -> nat -> nat -> Prop :=
+  sbtInit  : sbtree 0 1 1 0
+| sbtLeft  : forall m n m' n',
+               sbtree m n m' n' -> sbtree m n (m + m') (n + n')
+| sbtRight : forall m n m' n',
+               sbtree m n m' n' -> sbtree (m + m') (n + n') m' n'.
+
+Goal sbtree 0 1 1 1. (* 0/1, 1/1 -> (0+1)/(1+1) = 1/2 *)
+Proof.
+  apply: sbtLeft.
+  by apply: sbtInit.
+Qed.
+
+Goal sbtree 2 5 1 2. (* 2/5, 1/2 -> (2+1)/(5+2) = 3/7 *)
+Proof.
+  apply: (@sbtRight 1 3 1 2). (* 1/3, 1/2 -> (1+1)/(3+2) = 2/5 *)
+  apply: (@sbtRight 0 1 1 2). (* 0/1, 1/2 -> (0+1)/(1+2) = 1/3 *)
+  apply: (@sbtLeft 0 1 1 1). (* 0/1, 1/1 -> (0+1)/(1+1) = 1/2 *)
+  apply: (@sbtLeft 0 1 1 0). (* 0/1, 1/0 -> (0+1)/(1+0) = 1/1 *)
+  by apply: sbtInit.
+Qed.
+*/
+
+check_sbtree 0 1 1 0 :-
+        print "apply: sbtInit. (sbtree 0 1 1 0 → No more subgoals)".
+
+check_sbtree A B C D :-     % [m; n; m + m'; n + n'] → [m; n; m'; n']
+        X = A,
+        Y = B,
+        Z is (C - A),
+        W is (D - B),
+        X >= 0, Y >= 0, Z >= 0, W >= 0, !,
+        print "apply: sbtLeft. (sbtree" A B C D "→ sbtree" X Y Z W ")",
+        check_sbtree X Y Z W.
+
+check_sbtree A B C D :-     % [m + m'; n + n'; m'; n'] → [m; n; m'; n']
+        X is (A - C),
+        Y is (B - D),
+        Z = C,
+        W = D,
+        X >= 0, Y >= 0, Z >= 0, W >= 0, !,
+        print "apply: sbtRight. (sbtree" A B C D "→ sbtree" X Y Z W ")",
+        check_sbtree X Y Z W.
+
+
+pred g1.
+g1 :- check_sbtree 0 1 1 1.
+
+pred g2.
+g2 :- check_sbtree 2 5 1 2.
+
+%% END
