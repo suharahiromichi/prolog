@@ -1,0 +1,33 @@
+% even
+pred even i:int.
+even N :-
+     N is (N div 2) * 2.
+
+% step = f
+pred step i:int o:int.
+step N M :-
+     even N, !,
+     M is N div 2.
+step N M :-
+     M is 3 * N + 1.
+
+% reaches_1
+pred reaches_1 i:int.
+reaches_1 N :-
+          N =< 0, !,
+          fail.
+reaches_1 1 :- !.
+reaches_1 N :-
+          print N,
+          reaches_1 {step N}.
+%         step N M, reaches_1 M          
+
+% test
+pred test i:int.
+test N :-
+     reaches_1 N ,!,
+     print N "is ok\n".
+test N :-
+     print N "is ng\n".
+
+% END
