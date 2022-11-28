@@ -1,0 +1,225 @@
+/**
+# 規約 (builtin.elpi のコメント)
+
+= すべての述語は、いくつかの入力引数を使用してモードを宣言します...
+
+- 名前が R で終わる述語はリレーションです（あらゆる方向に機能します。
+  つまり、すべての引数が出力モードになります）。
+
+- 名前が``!``で終わる述語 カットを含み、最初の結果のみを生成します。
+
+- このライブラリによって与えられたすべてのエラーは、``fatal-error[-w-data]``
+  を呼び出すことになり、別の方法で処理するためにそれをオーバーライドします。
+
+- このライブラリによるすべてのデバッグ出力は最終的に debug-print を呼
+  び出し、異なる方法で処理するためにオーバーライドします。
+*/
+
+/**
+# stdlib の使い方
+
+述語名の前に``std.``を付けるか、``namespace std {`` と ``}.``で囲む。
+ここでは、前者の使い方をします。
+*/
+
+/**
+## pred fatal-error i:string.
+*/
+/**
+## pred fatal-error-w-data i:string, i:A.
+*/
+/**
+## pred debug-print i:string, i:A.
+*/
+/**
+## pred ignore-failure! i:prop.
+
+
+命題Pが失敗しても成功しても、``ignore-failure! P``は成功する。
+いずれの場合も、バックトラックして戻ってきた場合は、``P``によらず失敗する。
+*/
+
+pred test4.
+test4 :-
+      std.ignore-failure! true,
+      print 1,
+      std.ignore-failure! fail,
+      print 2.
+
+/**
+## pred assert! i:prop, i:string.
+
+
+``assert! C M``で、Cが失敗したら、メッセージMを出力する。
+*/
+
+pred test5.
+test5 :-
+      std.assert! fail "Fail!".
+
+/**
+## pred assert-ok! i:(diagnostic -> prop), i:string.
+
+
+``assert!``と似ているが、対象の命題が診断結果として、
+``ok``または``error S``を返すことを前提とする。
+*/
+pred sample o:diagnostic.
+sample (error "an error").
+pred test6.
+test6 :-
+      std.assert-ok! sample "diag-result".
+
+
+/**
+## pred spy i:prop.
+*/
+/**
+## pred spy! i:prop.
+*/
+/**
+## pred unsafe-cast o:A, o:B.
+*/
+/**
+## pred length i:list A, o:int.
+*/
+/**
+## pred rev i:list A, o:list A.
+*/
+/**
+## pred last i:list A, o:A.
+*/
+/**
+## pred append i:list A, i:list A, o:list A.
+*/
+/**
+## pred appendR o:list A, o:list A, o:list A.
+*/
+/**
+## pred take i:int, i:list A, o:list A.
+*/
+/**
+## pred take-last i:int, i:list A, o:list A.
+*/
+/**
+## pred drop i:int, i:list A, o:list A.
+*/
+/**
+## pred drop-last i:int, i:list A, o:list A.
+*/
+/**
+## pred split-at i:int, i:list A, o:list A, o:list A.
+*/
+/**
+## pred fold i:list B, i:A, i:(B -> A -> A -> prop), o:A.
+*/
+/**
+## pred fold2 i:list C, i:list B, i:A, i:(C -> B -> A -> A -> prop), o:A.
+*/
+/**
+## pred map i:list A, i:(A -> B -> prop), o:list B.
+*/
+/**
+## pred map-i i:list A, i:(int -> A -> B -> prop), o:list B.
+*/
+/**
+## pred map-filter i:list A, i:(A -> B -> prop), o:list B.
+*/
+/**
+## pred map2 i:list A, i:list B, i:(A -> B -> C -> prop), o:list C.
+*/
+/**
+## pred map2-filter i:list A, i:list B, i:(A -> B -> C -> prop), o:list C.
+*/
+/**
+## pred map-ok i:list A, i:(A -> B -> diagnostic -> prop), o:list A, o:diagnostic.
+*/
+/**
+## pred fold-map i:list A, i:B, i:(A -> B -> C -> B -> prop), o:list C, o:B.
+*/
+/**
+## pred omap i:option A, i:(A -> B -> prop), o:option B.
+*/
+/**
+## pred nth i:int, i:list A, o:A.
+*/
+/**
+## pred lookup i:list (pair A B), i:A, o:B.
+*/
+/**
+## pred lookup! i:list (pair A B), i:A, o:B.
+*/
+/**
+## pred mem! i:list A, o:A.
+*/
+/**
+## pred mem i:list A, o:A.
+*/
+/**
+## pred exists i:list A, i:(A -> prop).
+*/
+/**
+## pred exists2 i:list A, i:list B, i:(A -> B -> prop).
+*/
+/**
+## pred forall i:list A, i:(A -> prop).
+*/
+/**
+## pred forall-ok i:list A, i:(A -> diagnostic -> prop), o:diagnostic.
+*/
+/**
+## pred forall2 i:list A, i:list B, i:(A -> B -> prop).
+*/
+/**
+## pred filter i:list A, i:(A -> prop), o:list A.
+*/
+/**
+## pred zip i:list A, i:list B, o:list (pair A B).
+*/
+/**
+## pred unzip i:list (pair A B), o:list A, o:list B.
+*/
+/**
+## pred flatten i:list (list A), o:list A.
+*/
+/**
+## pred null i:list A.
+*/
+/**
+## pred iota i:int, o:list int.
+*/
+/**
+## pred intersperse i:A, i:list A, o:list A.
+*/
+/**
+## pred flip i:(A -> B -> prop), i:B, i:A.
+*/
+/**
+## pred time i:prop, o:float.
+*/
+/**
+## pred do! i:list prop.
+*/
+/**
+## pred do-ok! o:diagnostic, i:list (diagnostic -> prop).
+*/
+/**
+## pred lift-ok i:prop, i:string, o:diagnostic.
+*/
+/**
+## pred spy-do! i:list prop.
+*/
+/**
+## pred while-ok-do! i:diagnostic, i:list (diagnostic -> prop), o:diagnostic.
+*/
+/**
+## pred any->string i:A, o:string.
+*/
+/**
+## pred max i:A, i:A, o:A.
+*/
+/**
+## pred findall i:prop, o:list prop.
+*/
+
+/* END */
