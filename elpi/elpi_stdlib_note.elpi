@@ -1,7 +1,7 @@
 /**
 # 規約 (builtin.elpi のコメント)
 
-= すべての述語は、いくつかの入力引数を使用してモードを宣言します...
+- すべての述語は、いくつかの入力引数を使用してモードを宣言します...
 
 - 名前が R で終わる述語はリレーションです（あらゆる方向に機能します。
   つまり、すべての引数が出力モードになります）。
@@ -64,67 +64,198 @@ test5 :-
 ``assert!``と似ているが、対象の命題が診断結果として、
 ``ok``または``error S``を返すことを前提とする。
 */
-pred sample o:diagnostic.
-sample (error "an error").
+pred sample6 o:diagnostic.
+sample6 (error "an error").
 pred test6.
 test6 :-
-      std.assert-ok! sample "diag-result".
-
+      std.assert-ok! sample6 "diag-result".
 
 /**
 ## pred spy i:prop.
 */
+
 /**
 ## pred spy! i:prop.
 */
+
 /**
 ## pred unsafe-cast o:A, o:B.
+
+ELPIの型チェックを回避する。
+次の例は、float (1.0) を int であるべき箇所 sample8 に代入している。
 */
+pred test8.
+pred sample8 i:int.
+sample8 X :-
+        print X.
+test8 :-
+      std.unsafe-cast 1.0 X,
+      sample8 X.
+
 /**
 ## pred length i:list A, o:int.
+
+最後の引数が出力となる。最初の引数が変数（未束縛）ならエラーになる。
 */
+pred test9.
+test9 :-
+      std.length [1, 2, 3] N,
+      std.debug-print "length is" N.
+
 /**
 ## pred rev i:list A, o:list A.
+
+最後の引数が出力となる。
 */
+pred test10.
+test10 :-
+       std.rev [1, 2, 3] X,
+       std.debug-print "rev is" X.
+
 /**
 ## pred last i:list A, o:A.
+
+最後の引数が出力となる。
 */
+pred test11.
+test11 :-
+       std.last [1, 2, 3] X,
+       std.debug-print "last is" X.
+
 /**
 ## pred append i:list A, i:list A, o:list A.
+
+最後の引数が出力となる。
 */
+pred test12.
+test12 :-
+       std.append [1, 2, 3] [4, 5, 6] X,
+       std.debug-print "append is" X.
+
 /**
 ## pred appendR o:list A, o:list A, o:list A.
+
+規約の2番目の例。非決定的な append である。
 */
+pred test13.
+test13 :-
+       std.appendR X Y [1, 2, 3, 4, 5, 6],
+       print "append is" X "and" Y,
+       fail.
+
 /**
 ## pred take i:int, i:list A, o:list A.
+
+最後の引数が出力となる。先頭からN個とりだす。
+lengthより大きければ、fatal errorとなる。
 */
+pred test14.
+test14 :-
+       std.take 2 [1, 2, 3] X,
+       print "take 2 is" X.
+
 /**
 ## pred take-last i:int, i:list A, o:list A.
+
+最後の引数が出力となる。末尾からN個とりだす。
+lengthより大きければ、fatal errorとなる。
 */
+pred test15.
+test15 :-
+       std.take-last 2 [1, 2, 3] X,
+       print "take-last 2 is" X.
+
 /**
 ## pred drop i:int, i:list A, o:list A.
+
+最後の引数が出力となる。先頭からN個捨てる。
+lengthより大きければ、fatal errorとなる。
 */
+pred test16.
+test16 :-
+       std.drop 2 [1, 2, 3] X,
+       print "drop 2 is" X.
+
 /**
 ## pred drop-last i:int, i:list A, o:list A.
+
+最後の引数が出力となる。末尾からN個捨てる。
+lengthより大きければ、fatal errorとなる。
 */
+pred test17.
+test17 :-
+       std.drop-last 2 [1, 2, 3] X,
+       print "drop-last 2 is" X.
+
 /**
 ## pred split-at i:int, i:list A, o:list A, o:list A.
+
+最後の引数が出力となる。最初の要素の前を0として、N番目のところで分割する。
 */
+pred test18.
+test18 :-
+       std.split-at 2 [1, 2, 3, 4] X Y,
+       print "split at" X Y.
+       
 /**
 ## pred fold i:list B, i:A, i:(B -> A -> A -> prop), o:A.
+
+fold_right。
+普段はそのような使い方はしないが、Fが複数解あるときは、バックトラックで使われる。
 */
+pred test19.
+pred plus i:int i:int o:int.
+plus A B C :-
+     C is A + B.
+test19 :-
+       std.fold [1, 2, 3] 0 plus X,
+       print "fold plus is" X.
+
 /**
 ## pred fold2 i:list C, i:list B, i:A, i:(C -> B -> A -> A -> prop), o:A.
 */
+pred test20.
+pred plus2 i:int i:int i:int o:int.
+plus2 A B C D :-
+     D is A + B + C.
+test20 :-
+       std.fold2 [1, 2, 3] [4, 5, 6] 0 plus2 X,
+       print "fold2 plus2 is" X.
+
 /**
 ## pred map i:list A, i:(A -> B -> prop), o:list B.
+
+普段はそのような使い方はしないが、
+Fが複数解あるときは、バックトラックで使われる。
+Fがfailすると全体がFailする。
 */
+pred test21.
+pred minus1 i:int o:int.
+minus1 X Y :-
+      Y is ~ X.
+minus1 X Y :-
+      Y is X + 1.
+test21 :-
+       std.map [1, 2, 3] minus1 X,
+       print "map minus1 is" X.
+
 /**
 ## pred map-i i:list A, i:(int -> A -> B -> prop), o:list B.
 */
 /**
 ## pred map-filter i:list A, i:(A -> B -> prop), o:list B.
+
+Fがfailした場合は、結果から抜かれる。
 */
+pred test23.
+pred even2 i:int o:int.
+even2 N M :-
+     M is (N div 2) * 2,
+     N = M.
+test23 :-
+       std.map-filter [1, 2, 3, 4] even2 X,
+       print "map even is" X.
+
 /**
 ## pred map2 i:list A, i:list B, i:(A -> B -> C -> prop), o:list C.
 */
@@ -140,21 +271,66 @@ test6 :-
 /**
 ## pred omap i:option A, i:(A -> B -> prop), o:option B.
 */
+pred test28.
+pred minus i:int o:int.
+minus N M :-
+      M is ~ N.
+test28 :-
+       std.omap (some 1) minus X,
+       print "omap is" X.
+
 /**
 ## pred nth i:int, i:list A, o:A.
+
+先頭を0として、N番目の要素を取り出す。ISO-Prologの ``nth``。
 */
+pred test29.
+test29 :-
+       std.nth 0 [1, 2, 3] X,
+       print "nth is" X.
+
 /**
 ## pred lookup i:list (pair A B), i:A, o:B.
+
+連想配列。バックトラックで複数解が得られる。
 */
+pred test30.
+test30 :-
+       std.lookup [pr 1 11, pr 2 12, pr 1 13] 1 X,
+       print "lookup 1 is" X,
+       fail.
+
 /**
 ## pred lookup! i:list (pair A B), i:A, o:B.
+
+連想配列。唯一解のみ。
 */
+pred test31.
+test31 :-
+       std.lookup! [pr 1 11, pr 2 12, pr 1 13] 1 X,
+       print "lookup! 1 is" X,
+       fail.
 /**
 ## pred mem! i:list A, o:A.
+
+``∈`` 決定的に動作する。
 */
+pred test32.
+test32 :-
+       std.mem! [1, 2, 1] 1,
+       print "succ".
+
 /**
 ## pred mem i:list A, o:A.
+
+``∈`` 非決定的…バックトラックで戻ってきても、要素の個数だけ成功する。
 */
+pred test33.
+test33 :-
+       std.mem [1, 2, 1] 1,
+       print "succ",
+       fail.
+
 /**
 ## pred exists i:list A, i:(A -> prop).
 */
@@ -187,7 +363,14 @@ test6 :-
 */
 /**
 ## pred iota i:int, o:list int.
+
+``0``から``N-1``までのリストを返す。
 */
+pred test43.
+test43 :-
+       std.iota 3 X,
+       print "iota is" X.
+
 /**
 ## pred intersperse i:A, i:list A, o:list A.
 */
