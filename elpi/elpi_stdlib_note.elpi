@@ -18,8 +18,7 @@
 /**
 # stdlib の使い方
 
-述語名の前に``std.``を付けるか、``namespace std {`` と ``}.``で囲む。
-ここでは、前者の使い方をします。
+述語名の前に``std.``を付けて使います。
 */
 
 /**
@@ -60,6 +59,13 @@ test5 :-
 /**
 ## pred assert-ok! i:(diagnostic -> prop), i:string.
 
+diagnostic は、次のように定義されている。
+
+```
+kind diagnostic type.
+type ok diagnostic.              % Success
+type error string -> diagnostic. % Failure
+```
 
 ``assert!``と似ているが、対象の命題が診断結果として、
 ``ok``または``error S``を返すことを前提とする。
@@ -105,7 +111,9 @@ test9 :-
 /**
 ## pred rev i:list A, o:list A.
 
-最後の引数が出力となる。
+リストを反転します。最後の引数が出力となる。
+じつは、std.revの定義は良いものではなく、``std.rev X [3,2,1]``は無限ループになります。
+しかし、引数のi/oを守る限り問題はありません。
 */
 pred test10.
 test10 :-
@@ -136,6 +144,9 @@ test12 :-
 ## pred appendR o:list A, o:list A, o:list A.
 
 規約の2番目の例。非決定的な append である。
+以降では、述語が成功する条件のみならず、
+バックトラックしても成功するか、
+さらに、何回成功するか、も考えてみてください。
 */
 pred test13.
 test13 :-
@@ -333,7 +344,19 @@ test33 :-
 
 /**
 ## pred exists i:list A, i:(A -> prop).
+
+リストに``P``を満たす要素 x があれば成功する。
+要素が複数あれば、バックトラックしてもその回数だけ成功する。
+``P x``が複数回成功するなら、その分も成功する。
 */
+pred test34.
+pred one i:int.
+one 1.
+test34 :-
+       std.exists [1, 2, 1] one,
+       print "ok",
+       fail.
+
 /**
 ## pred exists2 i:list A, i:list B, i:(A -> B -> prop).
 */
@@ -404,5 +427,21 @@ test43 :-
 /**
 ## pred findall i:prop, o:list prop.
 */
+
+/**
+## namespace についての説明
+
+namespace はネストできますが、
+その外からはその全てを指定する必要があります。
+*/
+
+namespace space1 {
+namespace space2 {
+pred test99.
+test99 :- std.rev [97, 98, 99] X, print X.
+}
+}
+pred test99_1.
+test99_1 :- space1.space2.test99.
 
 /* END */
