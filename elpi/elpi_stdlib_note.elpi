@@ -1,5 +1,92 @@
 /**
-# 規約 (builtin.elpi のコメント)
+ELPI の組込述語 (stdlib編)
+=====================
+
+@suharahiromichi
+
+2022/12/02
+*/
+
+/**
+Embeddable Lambda Prolog Interpreter (ELPI) は、
+定理証明支援系 Coq の拡張に使えるλProlog (lProlog) の処理系ですが、
+ドキュメントが少なく、とくに組込述語（一般的なプログラミング言語の組込関数にあたる）
+の解説がないため、作成してみました。
+
+ここでは、ELPIのソースコード [1]
+
+``src/builtin_stdlib.elpi``
+
+
+の ``namespace std`` で定義された組込述語を
+できるだけ例を交えて説明します。
+
+λPrologやELPI自体の説明は [2] とそこに書いた参考文献を参考にしてください。
+
+この組込述語は、ドキュメントではstdlibと呼ばれますが、
+呼び出し時には、``std.``を付けます。stdlib ではないので、注意してください。
+なお、これ以外に特別な宣言は要りません。
+
+このファイルは以下にあります。
+
+
+https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_stdlib_note.elpi
+
+
+このファイルの例の使い方は、コマンドラインから、elpiコマンドの引数として呼び出してください。
+対話モードで ``goal> ``プロンプトの後に``test 10.``や``test11.``
+などと入力してください。Enterの前に``.``が要ります。
+一般的なPrologと異なり、一回毎にコマンドプロンプトに戻りますので、elpi
+コマンドから実行してください。
+
+```
+% elpi elpi_stdlib_note.elpi
+goal> test10.<Enter>
+
+% elpi elpi_stdlib_note.elpi
+goal> test11.<Enter>
+```
+*/
+
+/**
+# stdlib の使い方
+
+述語名の前に``std.``を付けて使います。
+λProlog の標準的な型として、命題を表す``prop``の他、以下の型が使われいます。
+
+- ``int``
+- ``float``
+- ``string``
+- ``list A``
+- ``diagnostic``
+
+前三つは一般的な定義で、float は``1.0``と小数点をつけて、
+stringはダブルクォーテーションで囲んで表現します。
+
+list は、次のように定義されています。ここで``X``は任意の型を示す型変数です。
+``::``はcons、``[]``はnilを表します。通常のProlog (以下、ISO Prologと呼びます)
+の``[ a | b ]``という表記も使えます。
+
+```
+kind list type -> type.
+type (::) X -> list X -> list X.
+type ([]) list X.
+```
+
+
+diagnostic は、次のように定義されています。
+
+```
+kind diagnostic type.
+type ok diagnostic.              % Success
+type error string -> diagnostic. % Failure
+```
+*/
+
+/**
+# 規約
+
+最初に ``builtin_stdlib.elpi`` の冒頭のコメントを訳しておきます。
 
 - すべての述語は、いくつかの入力引数を使用してモードを宣言します...
 
@@ -16,9 +103,7 @@
 */
 
 /**
-# stdlib の使い方
-
-述語名の前に``std.``を付けて使います。
+# stdlib の説明
 */
 
 /**
@@ -58,14 +143,6 @@ test5 :-
 
 /**
 ## pred assert-ok! i:(diagnostic -> prop), i:string.
-
-diagnostic は、次のように定義されている。
-
-```
-kind diagnostic type.
-type ok diagnostic.              % Success
-type error string -> diagnostic. % Failure
-```
 
 ``assert!``と似ているが、対象の命題が診断結果として、
 ``ok``または``error S``を返すことを前提とする。
@@ -293,7 +370,7 @@ test28 :-
 /**
 ## pred nth i:int, i:list A, o:A.
 
-先頭を0として、N番目の要素を取り出す。ISO-Prologの ``nth``。
+先頭を0として、N番目の要素を取り出す。ISO Prologの ``nth``。
 */
 pred test29.
 test29 :-
@@ -383,14 +460,23 @@ test34 :-
 */
 /**
 ## pred null i:list A.
+
+リストか``nil``なら成功します。
 */
+pred test43.
+test43 :-
+       not (std.null [_]),
+       std.null [],
+       std.null nil,
+       print "[] is null".
+
 /**
 ## pred iota i:int, o:list int.
 
 ``0``から``N-1``までのリストを返す。
 */
-pred test43.
-test43 :-
+pred test44.
+test44 :-
        std.iota 3 X,
        print "iota is" X.
 
@@ -426,10 +512,22 @@ test43 :-
 */
 /**
 ## pred findall i:prop, o:list prop.
+
+バックトラックで得られる複数解をリストとして返します。
+第1引数のprop全体を返すのが、ISO Prologと異なります。
+この過程で、第1引数のpropが実行されるため、printなどのその副作用も実行されます。
 */
+pred test55.
+pred sample55 o:int.
+sample55 1.
+sample55 2 :- print "this is 2".
+sample55 3.
+test55 :-
+       std.findall (sample55 X) L,
+       print "findall is " L.
 
 /**
-## namespace についての説明
+# namespace についての説明
 
 namespace はネストできますが、
 その外からはその全てを指定する必要があります。
@@ -443,5 +541,18 @@ test99 :- std.rev [97, 98, 99] X, print X.
 }
 pred test99_1.
 test99_1 :- space1.space2.test99.
+
+/**
+# 参考文献
+
+[1] ELPIソースコード
+
+https://github.com/LPCIC/elpi/tree/master/
+
+
+[2] λProlog (Lambda Prolog) の紹介
+
+https://qiita.com/suharahiromichi/items/a046859da0c0883e7304
+*/
 
 /* END */
