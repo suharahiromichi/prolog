@@ -57,7 +57,7 @@ goal> test11.<Enter>
 - ``int``
 - ``float``
 - ``string``
-- ``list A``
+- ``list X``
 - ``diagnostic``
 
 前三つは一般的な定義で、float は``1.0``と小数点をつけて、
@@ -509,7 +509,43 @@ test44 :-
 */
 /**
 ## pred max i:A, i:A, o:A.
+
+``>=`` を使って大きい方を求めます。2個の引数しか取れませんが、
+``{}``を使って関数型言語風にネストできます。
 */
+pred test54.
+pred test54_1.
+pred test54_2.
+test54 :-
+       print {std.max {std.max {calc (0 + 1)} {calc (1 + 1)}}
+                      {std.max {calc (1 + 2)} {calc (2 + 2)}}}.
+/**
+これは、次の例と正確に一致し、calcの中身の計算は1回だけなので、
+(Cのマクロを展開した場合と違って)効率は悪くありません。
+*/
+test54_1 :-
+       X11 is 0 + 1,
+       X12 is 1 + 1,
+       std.max X11 X12 X1,
+       X21 is 1 + 2,
+       X22 is 2 + 2,
+       std.max X21 X22 X2,
+       std.max X1 X2 X,
+       print X.
+/**
+自分で定義した型についても、``>=``を定義することでmaxを適用できます。
+*/
+kind windrose type.
+type n, e, w, s windrose.
+pred (>=) i:windrose i:windrose.
+n >= e.
+n >= w.
+n >= s.
+e >= s.
+w >= s.
+test54_2 :-
+         print {std.max {std.max n e} {std.max w s}}.
+
 /**
 ## pred findall i:prop, o:list prop.
 
@@ -523,7 +559,7 @@ sample55 1.
 sample55 2 :- print "this is 2".
 sample55 3.
 test55 :-
-       std.findall (sample55 X) L,
+       std.findall (sample55 _) L,
        print "findall is " L.
 
 /**
