@@ -11,7 +11,7 @@ ELPI の組込述語 (stdlib編)
 Embeddable Lambda Prolog Interpreter (ELPI) は、
 定理証明支援系 Coq の拡張に使えるλProlog (lProlog) の処理系ですが、
 ドキュメントが少なく、とくに組込述語（一般的なプログラミング言語の組込関数にあたる）
-の解説がないため、作成してみました。
+は通常のProlog (以下、ISO Prologと呼びます)と異なる部分が多いため、一覧を作成してみました。
 
 ここでは、ELPIのソースコード [1]
 
@@ -27,7 +27,8 @@ Embeddable Lambda Prolog Interpreter (ELPI) は、
 呼び出し時には、``std.``を付けます。stdlib ではないので、注意してください。
 なお、これ以外に特別な宣言は要りません。
 
-このファイルは以下にあります。
+
+この記事の元になるソースコードは以下にあります。
 
 
 https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_stdlib_note.elpi
@@ -36,10 +37,10 @@ https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_stdlib_note.elpi
 このファイルの例の使い方は、コマンドラインから、elpiコマンドの引数として呼び出してください。
 対話モードで ``goal> ``プロンプトの後に``test 10.``や``test11.``
 などと入力してください。Enterの前に``.``が要ります。
-複数解がある場合は、``More? (Y/n)``と表示されるので、<Enter>を押してみてください。
+複数解がある場合は、``More? (Y/n)``と表示されるので、Enterを押すとバックトラックが行われ別解が出力されます。
 
 一般的なPrologと異なり、一回毎にコマンドプロンプトに戻りますので、elpi
-コマンドから実行してください。
+コマンドから再度実行してください。
 
 ```
 % elpi elpi_stdlib_note.elpi
@@ -66,13 +67,14 @@ goal> test11.<Enter>
 
 前4つは一般的な定義で、float は``1.0``と小数点をつけて、
 stringはダブルクォーテーションで囲んで表現します。
-boolは、真は``tt``、偽は``ff``です。trueとfalseはpred型なので注意してください。
+boolは、真は``tt``、偽は``ff``です。trueとfalseは、ISO Prologと
+同様に述語(よって、λPrologではpred型)なので注意してください。
 
 ## list X
 
 list は、次のように定義されています。ここで``X``は任意の型を示す型変数です。
-``::``はcons、``[]``はnilを表します。通常のProlog (以下、ISO Prologと呼びます)
-の``[ a | b ]``という表記も使えます。
+``::``はcons、``[]``はnilを表します。ISO Prolog
+の``[ A | B ]``という表記も使えます。
 
 ```
 kind list type -> type.
@@ -80,11 +82,11 @@ type (::) X -> list X -> list X.
 type ([]) list X.
 ```
 
-## pair
+## pair A B
 
 pair は直積型で、次のように定義されています。
 コンストラクタは pr で、1と"one"のpairは``pr 1 "one"``となります。
-Coqなどのように、カンマの記法は用意されていません。
+カンマの記法は用意されていません。
 
 ```
 kind pair type -> type -> type.
@@ -324,8 +326,15 @@ test18 :-
 ## pred fold i:list B, i:A, i:(B -> A -> A -> prop), o:A.
 
 ``fold リスト 初期値 f 答え``のとき、
-やることは foldl ですが、f に与えられる引数の順番が
-Coqなどと異なることに注意してください。Coqでは以下が等価です。
+ISO Proloの``foldl``と同じです。
+f に与えられる引数の順番はISO Prologと同じですが、Coqなどの
+関数型言語のfold left関数と異なることに注意してください。
+Coqでは以下が等価です。
+
+``foldl (fun x y => subn y x) 0 [:: 1; 2; 3]``
+
+または
+
 ``foldl (fun x => subn ^~ x) 0 [:: 1; 2; 3]``
 */
 pred test19.
