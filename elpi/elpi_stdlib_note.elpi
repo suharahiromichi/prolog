@@ -36,6 +36,8 @@ https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_stdlib_note.elpi
 このファイルの例の使い方は、コマンドラインから、elpiコマンドの引数として呼び出してください。
 対話モードで ``goal> ``プロンプトの後に``test 10.``や``test11.``
 などと入力してください。Enterの前に``.``が要ります。
+複数解がある場合は、``More? (Y/n)``と表示されるので、<Enter>を押してみてください。
+
 一般的なPrologと異なり、一回毎にコマンドプロンプトに戻りますので、elpi
 コマンドから実行してください。
 
@@ -118,21 +120,18 @@ type error string -> diagnostic. % Failure
 /**
 ## pred ignore-failure! i:prop.
 
-
-命題Pが失敗しても成功しても、``ignore-failure! P``は成功する。
-いずれの場合も、バックトラックして戻ってきた場合は、``P``によらず失敗する。
+``ignore-failure! p`` の命題pが失敗しても成功しても、全体がは成功する。
 */
-
 pred test4.
+pred test4_1.
 test4 :-
       std.ignore-failure! true,
-      print 1,
+      print 1.
+test4_1 :-
       std.ignore-failure! fail,
       print 2.
-
 /**
 ## pred assert! i:prop, i:string.
-
 
 ``assert! C M``で、Cが失敗したら、メッセージMを出力する。
 */
@@ -145,7 +144,8 @@ test5 :-
 ## pred assert-ok! i:(diagnostic -> prop), i:string.
 
 ``assert!``と似ているが、対象の命題が診断結果として、
-``ok``または``error S``を返すことを前提とする。
+``ok``または``error S``を返す述語を使用します。
+対象の命題が失敗した場合もerrorと見なされるが、``no diagnostic returned``になる。
 */
 pred sample6 o:diagnostic.
 sample6 (error "an error").
@@ -155,11 +155,31 @@ test6 :-
 
 /**
 ## pred spy i:prop.
+
+``spy p`` で、述語pの呼出(enter)と結果(exit)を表示すると同時に、
+``More? (Y/n)``で、``n``を選ぶとpを失敗させることができます。
+また、pに代替節がある場合は、``Y``で選択できます。
 */
+pred test7.
+pred sample7 o:int.
+sample7 1.
+sample7 2.
+test7 :-
+      true,
+      std.spy (sample7 X),
+      true.
 
 /**
 ## pred spy! i:prop.
+
+spyと同じですが、
+``More? (Y/n)``で、``Y``を選んでもpの代替節は選ばれず、単に成功するだけです。
 */
+pred test8.
+test8 :-
+      true,
+      std.spy! (sample7 X),
+      true.
 
 /**
 ## pred unsafe-cast o:A, o:B.
@@ -228,8 +248,7 @@ test12 :-
 pred test13.
 test13 :-
        std.appendR X Y [1, 2, 3, 4, 5, 6],
-       print "append is" X "and" Y,
-       fail.
+       print "append is" X "and" Y.
 
 /**
 ## pred take i:int, i:list A, o:list A.
@@ -370,7 +389,7 @@ test28 :-
 /**
 ## pred nth i:int, i:list A, o:A.
 
-先頭を0として、N番目の要素を取り出す。ISO Prologの ``nth``。
+先頭を0として、N番目の要素を取り出す。ISO Prologの ``nth0``と同じ。
 */
 pred test29.
 test29 :-
@@ -385,8 +404,7 @@ test29 :-
 pred test30.
 test30 :-
        std.lookup [pr 1 11, pr 2 12, pr 1 13] 1 X,
-       print "lookup 1 is" X,
-       fail.
+       print "lookup 1 is" X.
 
 /**
 ## pred lookup! i:list (pair A B), i:A, o:B.
@@ -396,12 +414,11 @@ test30 :-
 pred test31.
 test31 :-
        std.lookup! [pr 1 11, pr 2 12, pr 1 13] 1 X,
-       print "lookup! 1 is" X,
-       fail.
+       print "lookup! 1 is" X.
 /**
 ## pred mem! i:list A, o:A.
 
-``∈`` 決定的に動作する。
+``∈`` メンバー述語です。
 */
 pred test32.
 test32 :-
@@ -411,7 +428,8 @@ test32 :-
 /**
 ## pred mem i:list A, o:A.
 
-``∈`` 非決定的…バックトラックで戻ってきても、要素の個数だけ成功する。
+``∈`` メンバー述語ですが、非決定的に動作します。
+つまり、バックトラックで戻ってきても、要素の個数だけ成功します。
 */
 pred test33.
 test33 :-
@@ -422,33 +440,83 @@ test33 :-
 /**
 ## pred exists i:list A, i:(A -> prop).
 
-リストに``P``を満たす要素 x があれば成功する。
+``exists リスト p``で、リストに引数の命題``p``を成功する要素 x がひとつでもあれば成功する。
 要素が複数あれば、バックトラックしてもその回数だけ成功する。
-``P x``が複数回成功するなら、その分も成功する。
+``p x``が複数回成功するなら、その分も成功する。
 */
 pred test34.
 pred one i:int.
 one 1.
 test34 :-
        std.exists [1, 2, 1] one,
-       print "ok",
-       fail.
+       print "ok".
 
 /**
 ## pred exists2 i:list A, i:list B, i:(A -> B -> prop).
+
+``exists2 リスト1 リスト2 p``で、
+2つのリストの同じ場所に``p``を成功する要素 x と y があれば成功する。
+``p x y``が複数回成功するなら、その分も成功する。
 */
+pred test35.
+pred onetwo i:int i:int.
+onetwo 1 2.
+test35 :-
+       std.exists2 [0, 1, 1] [1, 2, 2] onetwo,
+       print "ok".
+
 /**
 ## pred forall i:list A, i:(A -> prop).
+
+``forall リスト p``で、リストの要素全てが引数の命題``p``を成功するなら成功する。
 */
+pred test36.
+test36 :-
+       std.forall [1, 1, 1] one,
+       print "ok".
+
 /**
 ## pred forall-ok i:list A, i:(A -> diagnostic -> prop), o:diagnostic.
+
+forallと同じだが、diagnostic すなわち``ok``または``error 文字列``を返す述語を使用します。
+全体の結果として、最初にerrorになったときのdiagnosticを返します。
 */
+pred test37.
+pred test37_1.
+pred diagone i:int o:diagnostic.
+diagone 1 ok.
+diagone 2 (error "2 is ng").
+diagone 3 (error "3 is ng").
+test37 :-
+       std.forall-ok [1, 1, 1] diagone Diag,
+       print Diag.
+test37_1 :-
+       std.forall-ok [1, 2, 3] diagone Diag,
+       print Diag.
+
 /**
 ## pred forall2 i:list A, i:list B, i:(A -> B -> prop).
+
+``forall2 リスト1 リスト2 p``で、
+2つのリストの同じ場所の要素全てが引数の命題``p``を成功するなら成功する。
 */
+pred test38.
+test38 :-
+       std.forall2 [1, 1, 1] [2, 2, 2] onetwo,
+       print "ok".
+
 /**
 ## pred filter i:list A, i:(A -> prop), o:list A.
+
+述語``p``が成功する要素だけをピックアップします。
+該当する要素がなければ``[]``を返して成功します。
 */
+pred test39.
+pred sample39 i:int.
+sample39 1.
+test39 :-
+       std.filter [1, 2, 3] sample39 X,
+       print X.
 /**
 ## pred zip i:list A, i:list B, o:list (pair A B).
 */
@@ -482,10 +550,43 @@ test44 :-
 
 /**
 ## pred intersperse i:A, i:list A, o:list A.
+
+リストの要素の間に要素を挿入します。
 */
+pred test45.
+test45 :-
+       std.intersperse 0 [1,2,3] X,
+       print X.
+
 /**
 ## pred flip i:(A -> B -> prop), i:B, i:A.
+
+述語の第1引数と第2引数を交換します。
 */
+pred test46.
+pred oneone i:int i:string.
+oneone 1 "one".
+test46 :-
+       std.flip oneone "one" 1.
+
+/**
+3個以上の引数の述語に適用することもできます。
+*/
+pred test46_1.
+pred oneonetwo i:int i:string i:int.
+oneonetwo 1 "one" 2.
+test46_1 :-
+       std.flip (oneonetwo 1) 2 "one".
+
+/**
+引数の順番を任意に入れ替えるには、λを使う方法もあります。
+*/
+pred test46_2.
+test46_2 :-
+         P = (x\ z\ y\ oneonetwo x y z),
+         print (P 1 2 "one"),
+         P 1 2 "one".
+
 /**
 ## pred time i:prop, o:float.
 */
@@ -497,7 +598,30 @@ test44 :-
 */
 /**
 ## pred lift-ok i:prop, i:string, o:diagnostic.
+
+``lift-ok p 文字列 X``で、成功なら``ok``、失敗なら``error 文字列``を返します。
 */
+pred test50.
+test50 :-
+       std.lift-ok true "xxx" X,
+       print X.
+
+pred test50_1.
+test50_1 :-
+       std.lift-ok false "xxx" Y,
+       print Y.
+       
+/**
+lift-okの定義には問題があり、成功して``ok``を返しても、バックトラックすると``error 文字列``
+を返してしまいます。修正した定義を以下に示します。
+*/
+pred lift-ok' i:prop, i:string, o:diagnostic.
+lift-ok' P Msg R :- (P, !, R = ok; R = error Msg).
+pred test50'.
+test50' :-
+       lift-ok' true "xxx" X,
+       print X.
+
 /**
 ## pred spy-do! i:list prop.
 */
@@ -506,7 +630,15 @@ test44 :-
 */
 /**
 ## pred any->string i:A, o:string.
+
+λPrologの項を文字列に変換します。
+型が付かない項でも変換されますが、ワーニングがでます。
 */
+pred test53.
+test53 :-
+       std.any->string (error "abc") X,
+       print X.
+
 /**
 ## pred max i:A, i:A, o:A.
 
@@ -538,10 +670,11 @@ test54_1 :-
 kind windrose type.
 type n, e, w, s windrose.
 pred (>=) i:windrose i:windrose.
-n >= e.
-n >= w.
-n >= s.
-e >= s.
+e >= n.
+s >= n.
+w >= n.
+s >= e.
+w >= e.
 w >= s.
 test54_2 :-
          print {std.max {std.max n e} {std.max w s}}.
