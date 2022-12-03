@@ -333,8 +333,8 @@ test19 :-
 %      (3 - (2 - (1 - 0))) = 2
        print "fold sub is" X.
 /**
-普段はそのような使い方はしないが、``f x y z``が複数解あるときは、
-バックトラックで使われる。
+その例を含めていませんが、``f x y z``
+が複数解あるときは、バックトラックで使われます。
 */
 
 /**
@@ -344,12 +344,9 @@ test19 :-
 二つのリストの長さが異なる場合は、fatal-error になります。
 */
 pred test20.
-pred plus2 i:int i:int i:int o:int.
-plus2 A B C D :-
-     D is A + B + C.
 test20 :-
-       std.fold2 [1, 2, 3] [4, 5, 6] 0 plus2 X,
-       print "fold2 plus2 is" X.
+       std.fold2 [1, 2, 3] [4, 5, 6] 0 (x\y\z\u\ u is x + y + z) X,
+       print "fold2 is" X.
 
 /**
 ## pred map i:list A, i:(A -> B -> prop), o:list B.
@@ -358,14 +355,14 @@ test20 :-
 また、``f x y``が複数解あるときは、バックトラックで使われる。
 */
 pred test21.
-pred minus1 i:int o:int.
-minus1 X Y :-
+pred sampl21 i:int o:int.
+sampl21 X Y :-
       Y is ~ X.
-minus1 X Y :-
+sampl21 X Y :-
       Y is X + 1.
 test21 :-
-       std.map [1, 2, 3] minus1 X,
-       print "map minus1 is" X.
+       std.map [1, 2, 3] sampl21 X,
+       print "map sampl21 is" X.
 
 /**
 ## pred map-i i:list A, i:(int -> A -> B -> prop), o:list B.
