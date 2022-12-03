@@ -80,7 +80,7 @@ type (::) X -> list X -> list X.
 type ([]) list X.
 ```
 
-# pair
+## pair
 
 pair は直積型で、次のように定義されています。
 コンストラクタは pr で、1と"one"のpairは``pr 1 "one"``となります。
@@ -91,14 +91,15 @@ kind pair type -> type -> type.
 type pr A -> B -> pair A B.
 ```
 
-# diagnostic
+## diagnostic
 
-diagnostic は、次のように定義されています。
+diagnostic は、``ok``と``error 文字列``を返すデータ型で、
+次のように定義されています。
 
 ```
 kind diagnostic type.
-type ok diagnostic.              % Success
-type error string -> diagnostic. % Failure
+type ok diagnostic.
+type error string -> diagnostic.
 ```
 */
 
@@ -235,7 +236,7 @@ test10 :-
 /**
 ## pred last i:list A, o:A.
 
-最後の引数が出力となる。
+最後の引数が出力となる。空リストならfatal-errorになります。
 */
 pred test11.
 test11 :-
