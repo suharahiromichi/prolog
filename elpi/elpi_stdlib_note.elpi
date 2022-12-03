@@ -59,11 +59,16 @@ goal> test11.<Enter>
 - ``int``
 - ``float``
 - ``string``
+- ``bool``
 - ``list X``
+- ``pair X Y``
 - ``diagnostic``
 
-前三つは一般的な定義で、float は``1.0``と小数点をつけて、
+前4つは一般的な定義で、float は``1.0``と小数点をつけて、
 stringはダブルクォーテーションで囲んで表現します。
+boolは、真は``tt``、偽は``ff``です。trueとfalseはpred型なので注意してください。
+
+## list X
 
 list は、次のように定義されています。ここで``X``は任意の型を示す型変数です。
 ``::``はcons、``[]``はnilを表します。通常のProlog (以下、ISO Prologと呼びます)
@@ -75,6 +80,18 @@ type (::) X -> list X -> list X.
 type ([]) list X.
 ```
 
+# pair
+
+pair は直積型で、次のように定義されています。
+コンストラクタは pr で、1と"one"のpairは``pr 1 "one"``となります。
+Coqなどのように、カンマの記法は用意されていません。
+
+```
+kind pair type -> type -> type.
+type pr A -> B -> pair A B.
+```
+
+# diagnostic
 
 diagnostic は、次のように定義されています。
 
@@ -98,10 +115,10 @@ type error string -> diagnostic. % Failure
 - 名前が``!``で終わる述語 カットを含み、最初の結果のみを生成します。
 
 - このライブラリによって与えられたすべてのエラーは、``fatal-error[-w-data]``
-  を呼び出すことになり、別の方法で処理するためにそれをオーバーライドします。
+  を呼び出すことになり、別の方法で処理するためにはオーバーライドします。
 
 - このライブラリによるすべてのデバッグ出力は最終的に debug-print を呼
-  び出し、異なる方法で処理するためにオーバーライドします。
+  び出し、異なる方法で処理するためにはオーバーライドします。
 */
 
 /**
@@ -165,9 +182,8 @@ pred sample7 o:int.
 sample7 1.
 sample7 2.
 test7 :-
-      true,
       std.spy (sample7 X),
-      true.
+      print X.
 
 /**
 ## pred spy! i:prop.
@@ -177,9 +193,8 @@ spyと同じですが、
 */
 pred test8.
 test8 :-
-      true,
       std.spy! (sample7 X),
-      true.
+      print X.
 
 /**
 ## pred unsafe-cast o:A, o:B.
@@ -332,9 +347,8 @@ test20 :-
 /**
 ## pred map i:list A, i:(A -> B -> prop), o:list B.
 
-普段はそのような使い方はしないが、
-Fが複数解あるときは、バックトラックで使われる。
-Fがfailすると全体がFailする。
+``map f リスト``に対して、``f x y``がfailすると全体がFailする。
+また、``f x y``が複数解あるときは、バックトラックで使われる。
 */
 pred test21.
 pred minus1 i:int o:int.
@@ -352,7 +366,7 @@ test21 :-
 /**
 ## pred map-filter i:list A, i:(A -> B -> prop), o:list B.
 
-Fがfailした場合は、結果から抜かれる。
+``map-filter f リスト 結果`` で、mapと同じだが f が失敗した場合は、結果から抜かれる。
 */
 pred test23.
 pred even2 i:int o:int.
@@ -365,13 +379,43 @@ test23 :-
 
 /**
 ## pred map2 i:list A, i:list B, i:(A -> B -> C -> prop), o:list C.
+
+2項演算を使ったふたつのリストからなるmapです。
+ふたつのリストの長さが異なるとfatal-errorとなります。
 */
+pred test24.
+test24 :-
+       std.map2 [1, 2, 3] [4, 5, 6] (x\ y\ z\ z is x + y) X,
+       print X.
+
 /**
 ## pred map2-filter i:list A, i:list B, i:(A -> B -> C -> prop), o:list C.
+
+``map2-filter f リスト1 リスト2 結果`` で、map2と同じだが f
+が失敗した場合は、結果から抜かれる。
 */
+pred test25.
+test25 :-
+       std.map2-filter [9, 6, 2] [3, 2, 0]
+                       (x\ y\ z\ not(y = 0), !, z is x div y) X,
+       print X.
+
+
 /**
 ## pred map-ok i:list A, i:(A -> B -> diagnostic -> prop), o:list A, o:diagnostic.
+
+mapと同じですが、diagnostic で``error 文字列``が返った場合は、そこで打ち切り、
+エラーにしてdiagnosticを返します。
 */
+pred test26.
+pred diagtwo i:int o:int o:diagnostic.
+diagtwo 1 2 ok.
+diagtwo 3 4 ok.
+diagtwo 0 0 (error "xxxx").
+test26 :-
+       std.map-ok [1, 0, 3] diagtwo X D,
+       print X D.
+
 /**
 ## pred fold-map i:list A, i:B, i:(A -> B -> C -> B -> prop), o:list C, o:B.
 */
@@ -519,13 +563,43 @@ test39 :-
        print X.
 /**
 ## pred zip i:list A, i:list B, o:list (pair A B).
+
+ふたつのリストから、pairのリストを作ります。
 */
+pred test40.
+test40 :-
+       std.zip [1, 2, 3] ["one", "two", "three"] X,
+       print X.
+
 /**
 ## pred unzip i:list (pair A B), o:list A, o:list B.
+
+zipの逆です。
 */
+pred test41.
+test41 :-
+       std.unzip [pr 1 "one", pr 2 "two", pr 3 "three"] X Y,
+       print X Y.
+
 /**
 ## pred flatten i:list (list A), o:list A.
+
+リストの入れ子を除きます。ただしリストのリストだけ
+で、ISO Prologのように任意の入れ子には対応していません。
 */
+pred test42.
+test42 :-
+       std.flatten [[1], [2, 3, 4, 5], [6, 7, 8], []] X,
+       print X.
+
+/**
+リストのリストのリストからはリストのリストになります。
+*/
+pred test42_1.
+test42_1 :-
+       std.flatten [[[1, 2], [3, 4]], [[5, 6], [7, 8]]] X,
+       print X.
+
 /**
 ## pred null i:list A.
 
