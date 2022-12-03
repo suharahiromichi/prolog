@@ -4,7 +4,7 @@ ELPI の組込述語 (stdlib編)
 
 @suharahiromichi
 
-2022/12/02
+2022/12/04
 */
 
 /**
@@ -322,19 +322,26 @@ test18 :-
 /**
 ## pred fold i:list B, i:A, i:(B -> A -> A -> prop), o:A.
 
-fold_right。
-普段はそのような使い方はしないが、Fが複数解あるときは、バックトラックで使われる。
+``fold リスト 初期値 f 答え``のとき、
+やることは foldl ですが、f に与えられる引数の順番が
+Coqなどと異なることに注意してください。Coqでは以下が等価です。
+``foldl (fun x => subn ^~ x) 0 [:: 1; 2; 3]``
 */
 pred test19.
-pred plus i:int i:int o:int.
-plus A B C :-
-     C is A + B.
 test19 :-
-       std.fold [1, 2, 3] 0 plus X,
-       print "fold plus is" X.
+       std.fold [1, 2, 3] 0 (x\ y\ z\ z is x - y) X,
+%      (3 - (2 - (1 - 0))) = 2
+       print "fold sub is" X.
+/**
+普段はそのような使い方はしないが、``f x y z``が複数解あるときは、
+バックトラックで使われる。
+*/
 
 /**
 ## pred fold2 i:list C, i:list B, i:A, i:(C -> B -> A -> A -> prop), o:A.
+
+二つのリストに対してfoldをおこない、一つの値を求めます。
+二つのリストの長さが異なる場合は、fatal-error になります。
 */
 pred test20.
 pred plus2 i:int i:int i:int o:int.
@@ -418,7 +425,23 @@ test26 :-
 
 /**
 ## pred fold-map i:list A, i:B, i:(A -> B -> C -> B -> prop), o:list C, o:B.
+
+``fold-map リスト 初期値 f Map結果 Fold結果`` のとき、fは、
+``f x y z u``で、xとyが入力、zがMapのための計算、uがFoldのための計算です。
 */
+pred test27.
+test27 :-
+       std.fold-map [1, 2, 3] 0 (x\y\z\u\ z is ~ x, u is x - y) Map Fold,
+       print "fold-map is" Map Fold.
+%      Fold = (3 - (2 - (1 - 0))) = 2
+/**
+Mapのための計算は2引数でもよいため、foldの途中結果をMapに返すこともできます。
+*/
+pred test27_1.
+test27_1 :-
+       std.fold-map [1, 2, 3] 0 (x\y\z\u\ z is x - y, u is x - y) Map Fold,
+       print "fold-map is" Map Fold.
+
 /**
 ## pred omap i:option A, i:(A -> B -> prop), o:option B.
 */
