@@ -42,7 +42,7 @@ https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_stdlib_note.elpi
 
 
 このファイルの例の使い方は、コマンドラインから、elpiコマンドの引数として呼び出してください。
-対話モードで ``goal> ``プロンプトの後に``test 10.``や``test11.``
+対話モードで ``goal> ``プロンプトの後に``test10.``や``test11.``
 などと入力してください。Enterの前に``.``が要ります。
 複数解がある場合は、``More? (Y/n)``と表示されるので、Enterを押すとバックトラックが行われ別解が出力されます。
 
@@ -70,6 +70,7 @@ goal> test11.<Enter>
 - ``bool``
 - ``list X``
 - ``pair X Y``
+- ``option A``
 - ``diagnostic``
 
 前4つは一般的な定義で、float は``1.0``と小数点をつけて、
@@ -98,6 +99,17 @@ pair は直積型で、次のように定義されています。
 ```
 kind pair type -> type -> type.
 type pr A -> B -> pair A B.
+```
+
+## option A
+
+option A は、``none``または``some X``を返すデータ型で、Xの型はAです。
+maybe型とも呼ばれます。次のように定義されています。
+
+```
+kind option type -> type.
+type none option A.
+type some A -> option A.
 ```
 
 ## diagnostic
@@ -458,6 +470,8 @@ test27_1 :-
 
 /**
 ## pred omap i:option A, i:(A -> B -> prop), o:option B.
+
+option A 型の中身に対して処理をします。
 */
 pred test28.
 pred minus i:int o:int.
@@ -465,7 +479,10 @@ minus N M :-
       M is ~ N.
 test28 :-
        std.omap (some 1) minus X,
-       print "omap is" X.
+       print "omap (some 1) is" X.
+test28_1 :-
+       std.omap none minus X,
+       print "omap none is" X.
 
 /**
 ## pred nth i:int, i:list A, o:A.
@@ -515,8 +532,7 @@ test32 :-
 pred test33.
 test33 :-
        std.mem [1, 2, 1] 1,
-       print "succ",
-       fail.
+       print "succ".
 
 /**
 ## pred exists i:list A, i:(A -> prop).
