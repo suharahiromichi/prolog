@@ -8,9 +8,16 @@ ELPI の組込述語 (stdlib編)
 */
 
 /**
+λProlog (lProlog、LambdaProlog) は、その名前の通り、
+Prolog本来の導出原理に加えて、ラムダ計算も計算原理に持つという、おもしろい言語です。
+
 Embeddable Lambda Prolog Interpreter (ELPI) は、
-定理証明支援系 Coq の拡張に使えるλProlog (lProlog) の処理系ですが、
-ドキュメントが少なく、とくに組込述語（一般的なプログラミング言語の組込関数にあたる）
+定理証明支援系 Coq の機能拡張のためのλPrologの処理系で、
+Coqと一緒に配布されていますが、
+単独でUNIX系OSのコマンドラインからインタプリタを起動して使うことも使用可能です。
+
+しかし、ドキュメントが少なく、
+とくに組込述語（一般的なプログラミング言語の組込関数）
 は通常のProlog (以下、ISO Prologと呼びます)と異なる部分が多いため、一覧を作成してみました。
 
 ここでは、ELPIのソースコード [1]
@@ -21,7 +28,7 @@ Embeddable Lambda Prolog Interpreter (ELPI) は、
 の ``namespace std`` で定義された組込述語を
 できるだけ例を交えて説明します。
 
-λPrologやELPI自体の説明は [2] とそこに書いた参考文献を参考にしてください。
+λPrologやELPIについての説明は [2] と、そこに書いた参考文献を参考にしてください。
 
 この組込述語は、ドキュメントではstdlibと呼ばれますが、
 呼び出し時には、``std.``を付けます。stdlib ではないので、注意してください。
@@ -95,7 +102,7 @@ type pr A -> B -> pair A B.
 
 ## diagnostic
 
-diagnostic は、``ok``と``error 文字列``を返すデータ型で、
+diagnostic は、``ok``または``error 文字列``を返すデータ型で、
 次のように定義されています。
 
 ```
@@ -327,8 +334,8 @@ test18 :-
 
 ``fold リスト 初期値 f 答え``のとき、
 ISO Proloの``foldl``と同じです。
-f に与えられる引数の順番はISO Prologと同じですが、Coqなどの
-関数型言語のfold left関数と異なることに注意してください。
+f に与えられる引数の順番はISO Prologとは同じですが、Coqなどの
+関数型言語のfold_left関数と異なることに注意してください。
 Coqでは以下が等価です。
 
 ``foldl (fun x y => subn y x) 0 [:: 1; 2; 3]``
