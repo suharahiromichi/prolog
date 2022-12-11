@@ -1,0 +1,94 @@
+/**
+ELPI の組込述語 (std.set編)
+=====================
+
+@suharahiromichi
+
+2022/12/11
+*/
+
+/**
+# std.set の使い方
+
+述語名の前に``std.set``をつけて使います。
+*/
+
+/**
+# pred make i:(E -> E -> cmp -> prop), o:std.set E.
+*/
+pred cmp1 i:int, i:int, o:cmp. /* o に注意！ */
+cmp1 X X eq.
+cmp1 X Y lt :- X < Y.
+cmp1 X Y gt :- X > Y.
+
+pred test1.
+test1 :-
+      std.set.make cmp1 S,
+      print S.
+
+/**
+# pred mem i:E, i:std.set E.
+*/
+pred test2.
+test2 :-
+      std.set.make cmp1 S,
+      print S,
+      std.set.mem 1 S.
+
+/**
+# pred add i:E, i:std.set E, o:std.set E.
+*/
+pred test3.
+test3 :-
+      std.set.make cmp1 S,
+      std.spy (std.set.add 1 S S1),
+      std.spy (std.set.add 2 S1 S2),
+      std.spy (std.set.mem 2 S2).
+
+
+/**
+# pred remove i:E, i:std.set E, o:std.set E.
+*/
+/**
+# pred cardinal i:std.set E, o:int.
+*/
+/**
+# pred elements i:std.set E, o:list E.
+*/
+/**
+# pred height i:set E, o:int.
+*/
+/**
+# pred create i:set E, i:E, i:set E, o:set E.
+*/
+/**
+# pred bal i:set E, i:E, i:set E, o:set E.
+*/
+/**
+# pred add i:set E, i:(E -> E -> cmp -> prop), i:E, o:set E.
+*/
+/**
+# pred mem i:set E, i:(E -> E -> cmp -> prop), i:E.
+*/
+/**
+# pred remove-min-binding i:set E, o:set E.
+*/
+/**
+# pred min-binding i:set E, o:E.
+*/
+/**
+# pred merge i:set E, i:set E, o:set E.
+*/
+/**
+# pred remove i:set E, i:(E -> E -> cmp -> prop), i:E, o:set E.
+*/
+/**
+# pred cardinal i:set E, o:int.
+*/
+/**
+# pred elements i:set E, i:list E, o:list E.
+*/
+
+
+/* END */
+
