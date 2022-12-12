@@ -5,6 +5,13 @@ ELPI の組込述語 (std.set編)
 @suharahiromichi
 
 2022/12/11
+
+ELPI (文献[2]) の組込述語の2回めとして、ELPIのソースコード [1]
+
+``src/builtin_stt.elpi``
+
+に定義されている、集合を扱うライブラリの説明をします。
+全順序集合を平衡二分木を使って実装しています。
 */
 
 /**
@@ -14,7 +21,7 @@ ELPI の組込述語 (std.set編)
 */
 
 /**
-# pred make i:(E -> E -> cmp -> prop), o:std.set E.
+## pred make i:(E -> E -> cmp -> prop), o:std.set E.
 */
 pred cmp1 i:int, i:int, o:cmp. /* o に注意！ */
 cmp1 X X eq.
@@ -23,17 +30,15 @@ cmp1 X Y gt :- X > Y.
 
 pred test1.
 test1 :-
-      std.set.make cmp1 S,
-      print S.
+      std.spy (std.set.make cmp1 _).
 
 /**
-# pred mem i:E, i:std.set E.
+## pred mem i:E, i:std.set E.
 */
 pred test2.
 test2 :-
       std.set.make cmp1 S,
-      print S,
-      std.set.mem 1 S.
+      not (std.spy (std.set.mem 1 S)).
 
 /**
 # pred add i:E, i:std.set E, o:std.set E.
@@ -47,47 +52,52 @@ test3 :-
 
 
 /**
-# pred remove i:E, i:std.set E, o:std.set E.
+## pred remove i:E, i:std.set E, o:std.set E.
 */
+pred test4.
+test4 :-
+      std.set.make cmp1 S,
+      std.spy (std.set.add 1 S S1),
+      std.spy (std.set.mem 1 S1),
+      std.spy (std.set.remove 1 S1 S2),
+      not (std.spy (std.set.mem 1 S2)).
+      
 /**
-# pred cardinal i:std.set E, o:int.
+## pred cardinal i:std.set E, o:int.
 */
+pred test5.
+test5 :-
+      std.set.make cmp1 S,
+      std.spy (std.set.add 1 S S1),
+      std.spy (std.set.add 2 S1 S2),
+      std.spy (std.set.cardinal S2 N),
+      print "size is " N.
+
 /**
-# pred elements i:std.set E, o:list E.
+## pred elements i:std.set E, o:list E.
 */
+pred test6.
+test6 :-
+      std.set.make cmp1 S,
+      std.spy (std.set.add 1 S S1),
+      std.spy (std.set.add 2 S1 S2),
+      std.spy (std.set.elements S2 L),
+      print "elems are " L.
+
 /**
-# pred height i:set E, o:int.
-*/
-/**
-# pred create i:set E, i:E, i:set E, o:set E.
-*/
-/**
-# pred bal i:set E, i:E, i:set E, o:set E.
-*/
-/**
-# pred add i:set E, i:(E -> E -> cmp -> prop), i:E, o:set E.
-*/
-/**
-# pred mem i:set E, i:(E -> E -> cmp -> prop), i:E.
-*/
-/**
-# pred remove-min-binding i:set E, o:set E.
-*/
-/**
-# pred min-binding i:set E, o:E.
-*/
-/**
-# pred merge i:set E, i:set E, o:set E.
-*/
-/**
-# pred remove i:set E, i:(E -> E -> cmp -> prop), i:E, o:set E.
-*/
-/**
-# pred cardinal i:set E, o:int.
-*/
-/**
-# pred elements i:set E, i:list E, o:list E.
-*/
+# 参考文献
+
+[1] ELPIソースコード
+
+https://github.com/LPCIC/elpi/tree/master/
+
+
+[2] λProlog (Lambda Prolog) の紹介
+
+https://qiita.com/suharahiromichi/items/a046859da0c0883e7304
+
+
+[3] ELPI の組込述語 (stdlib編)
 
 
 /* END */
