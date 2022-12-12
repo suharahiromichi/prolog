@@ -22,6 +22,23 @@ ELPI (文献[2]) の組込述語の2回めとして、ELPIのソースコード 
 
 /**
 ## pred make i:(E -> E -> cmp -> prop), o:std.set E.
+
+全順序の関係を定義して、空集合を返しまします。
+ここでは、極基本的に、整数どうしの大小関係を指定しています。
+
+``E -> E -> comp -> prop`` 型の3引数の述語で定義しますが、
+第3引数は、出力であることに注意してください。
+第1と第2引数の関係を調べて、``eq``、``lt``、``gt``のどれか（cmp型）を
+（決定的に）返すようにします。cmp型は、
+
+```
+kind cmp type.
+type eq cmp.
+type lt cmp.
+type gt cmp.
+```
+
+で定義されています。いわゆる列挙型と思って間違いありません。
 */
 pred cmp1 i:int, i:int, o:cmp. /* o に注意！ */
 cmp1 X X eq.
@@ -34,6 +51,8 @@ test1 :-
 
 /**
 ## pred mem i:E, i:std.set E.
+
+集合に要素が含まれているかテストします。「∈」ですね。
 */
 pred test2.
 test2 :-
@@ -42,17 +61,23 @@ test2 :-
 
 /**
 # pred add i:E, i:std.set E, o:std.set E.
+
+要素を追加します。同じ(eqである)要素を何回追加しても、変りません。
 */
 pred test3.
 test3 :-
       std.set.make cmp1 S,
       std.spy (std.set.add 1 S S1),
       std.spy (std.set.add 2 S1 S2),
-      std.spy (std.set.mem 2 S2).
-
+      std.spy (std.set.mem 2 S2),
+      std.spy (std.set.add 2 S2 S2),
+      std.spy (std.set.add 2 S2 S2),
+      std.spy (std.set.add 2 S2 S2).
 
 /**
 ## pred remove i:E, i:std.set E, o:std.set E.
+
+要素を削除します。含まれない要素の削除はfailします。
 */
 pred test4.
 test4 :-
@@ -61,9 +86,12 @@ test4 :-
       std.spy (std.set.mem 1 S1),
       std.spy (std.set.remove 1 S1 S2),
       not (std.spy (std.set.mem 1 S2)).
+      not (std.spy (std.set.remove 1 S2 S3)).
       
 /**
 ## pred cardinal i:std.set E, o:int.
+
+集合の大きさを返します。
 */
 pred test5.
 test5 :-
@@ -75,6 +103,8 @@ test5 :-
 
 /**
 ## pred elements i:std.set E, o:list E.
+
+集合の要素をリストで返します。
 */
 pred test6.
 test6 :-
@@ -82,7 +112,19 @@ test6 :-
       std.spy (std.set.add 1 S S1),
       std.spy (std.set.add 2 S1 S2),
       std.spy (std.set.elements S2 L),
-      print "elems are " L.
+      print "elements are " L.
+
+/**
+# 補足説明
+
+もし、実装をご覧になったかたは、Prologだからといって特別なアルゴリズムを
+使っているわけではなく、おそらく、他の言語の実装とくらべても短いわけでない
+ことがわかるとおもいます。それでもPrologを使うのは…なぜでしょうね。
+
+また、集合演算としては、要素の追加と削除しかないので、物足りないかもしれません。
+そう思ったかたは、ぜひ、このライブラリの拡張にも挑戦してみてください。
+
+*/
 
 /**
 # 参考文献
@@ -99,6 +141,9 @@ https://qiita.com/suharahiromichi/items/a046859da0c0883e7304
 
 [3] ELPI の組込述語 (stdlib編)
 
+https://qiita.com/suharahiromichi/items/1d200a9320e04ca21953
 
+
+*/
 /* END */
 
