@@ -24,7 +24,7 @@ https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_std_set_note.elp
 /**
 # std.set の使い方
 
-述語名の前に``std.set``をつけて使います。
+述語名の前に``std.set.``をつけて使います。
 */
 
 /**
@@ -72,7 +72,7 @@ test2 :-
       not (std.set.mem 1 S).
 
 /**
-# pred add i:E, i:std.set E, o:std.set E.
+## pred add i:E, i:std.set E, o:std.set E.
 
 要素を追加します。同じ(eqである)要素を何回追加しても、変りません。
 */
