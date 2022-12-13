@@ -54,7 +54,7 @@ cmp1 X Y gt :- X > Y.
 
 pred test1.
 test1 :-
-      std.spy (std.set.make cmp1 _).
+      std.set.make cmp1 _.
 
 /**
 ## pred mem i:E, i:std.set E.
@@ -69,7 +69,7 @@ test1 :-
 pred test2.
 test2 :-
       std.set.make cmp1 S,
-      not (std.spy (std.set.mem 1 S)).
+      not (std.set.mem 1 S).
 
 /**
 # pred add i:E, i:std.set E, o:std.set E.
@@ -79,12 +79,12 @@ test2 :-
 pred test3.
 test3 :-
       std.set.make cmp1 S,
-      std.spy (std.set.add 1 S S1),
-      std.spy (std.set.add 2 S1 S2),
-      std.spy (std.set.mem 2 S2),
-      std.spy (std.set.add 2 S2 S2),
-      std.spy (std.set.add 2 S2 S2),
-      std.spy (std.set.add 2 S2 S2).
+      std.set.add 1 S S1,
+      std.set.add 2 S1 S2,
+      std.set.mem 2 S2,
+      std.set.add 2 S2 S2,
+      std.set.add 2 S2 S2,
+      std.set.add 2 S2 S2.
 
 /**
 ## pred remove i:E, i:std.set E, o:std.set E.
@@ -94,11 +94,11 @@ test3 :-
 pred test4.
 test4 :-
       std.set.make cmp1 S,
-      std.spy (std.set.add 1 S S1),
-      std.spy (std.set.mem 1 S1),
-      std.spy (std.set.remove 1 S1 S2),
-      not (std.spy (std.set.mem 1 S2)),
-      not (std.spy (std.set.remove 1 S2 _)).
+      std.set.add 1 S S1,
+      std.set.mem 1 S1,
+      std.set.remove 1 S1 S2,
+      not (std.set.mem 1 S2),
+      not (std.set.remove 1 S2 _).
       
 /**
 ## pred cardinal i:std.set E, o:int.
@@ -108,9 +108,9 @@ test4 :-
 pred test5.
 test5 :-
       std.set.make cmp1 S,
-      std.spy (std.set.add 1 S S1),
-      std.spy (std.set.add 2 S1 S2),
-      std.spy (std.set.cardinal S2 N),
+      std.set.add 1 S S1,
+      std.set.add 2 S1 S2,
+      std.set.cardinal S2 N,
       print "size is " N.
 
 /**
@@ -121,9 +121,9 @@ test5 :-
 pred test6.
 test6 :-
       std.set.make cmp1 S,
-      std.spy (std.set.add 1 S S1),
-      std.spy (std.set.add 2 S1 S2),
-      std.spy (std.set.elements S2 L),
+      std.set.add 1 S S1,
+      std.set.add 2 S1 S2,
+      std.set.elements S2 L,
       print "elements are " L.
 
 /**
