@@ -8,7 +8,7 @@ ELPI の組込述語 (std.set編)
 
 ELPI (文献[2]) の組込述語の2回めとして、ELPIのソースコード [1]
 
-``src/builtin_stt.elpi``
+``src/builtin_set.elpi``
 
 
 に定義されている、集合を扱うライブラリの説明をします。
