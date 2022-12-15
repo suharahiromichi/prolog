@@ -1,0 +1,106 @@
+/**
+ELPI の組込述語 (std.map編)
+=====================
+
+@suharahiromichi
+
+2022/12/16
+
+ELPI (文献[2]) の組込述語の3回めとして、ELPIのソースコード [1]
+
+``src/builtin_map.elpi``
+
+
+に定義されている、連想配列（ハッシュ）を扱うライブラリの説明をします。
+全順序な値をキーとして、平衡二分木を使って実装しています。
+
+
+この記事の元になるソースコードは以下にあります。
+
+
+https://github.com/suharahiromichi/prolog/blob/master/elpi/elpi_std_map_note.elpi*/
+
+/**
+# std.map の使い方
+
+述語名の前に``std.map``をつけて使います。
+*/
+
+/**
+## pred make i:(K -> K -> cmp -> prop), o:std.map K V.
+*/
+pred cmp2 i:string, i:string, o:cmp. /* o に注意！ */
+cmp2 X X eq.
+cmp2 X Y lt :- X < Y.
+cmp2 X Y gt :- X > Y.
+
+pred test1.
+test1 :-
+      std.spy(std.map.make cmp2 K),
+      print K.
+
+/**
+## pred find i:K, i:std.map K V, o:V.
+*/
+pred test2.
+test2 :-
+      std.map.make cmp2 T,
+      not (std.spy(std.map.find "abc" T _)).
+
+/**
+## pred add i:K, i:V, i:std.map K V, o:std.map K V.
+*/
+pred test3.
+test3 :-
+      std.map.make cmp2 T,
+      std.map.add "abc" 123 T T1,
+      std.map.add "abc" 456 T1 T2,
+      std.spy(std.map.find "abc" T2 V),
+      print V,
+      not (std.spy (std.map.find "xyz" T2 _)).
+
+/**
+## pred remove i:K, i:std.map K V, o:std.map K V.
+*/
+pred test4.
+test4 :-
+      std.map.make cmp2 T,
+      std.map.add "abc" 123 T T1,
+      std.map.remove "abc" T1 T2,
+      not (std.spy(std.map.find "abc" T2 V)).
+
+/**
+## pred bindings i:std.map K V, o:list (pair K V).
+*/
+pred test5.
+test5 :-
+      std.map.make cmp2 T,
+      std.map.add "abc" 123 T T1,
+      std.map.add "xyz" 789 T1 T2,
+      std.spy (std.map.bindings T2 L),
+      print L.
+
+/**
+# 参考文献
+
+[1] ELPIソースコード
+
+https://github.com/LPCIC/elpi/tree/master/
+
+
+[2] λProlog (Lambda Prolog) の紹介
+
+https://qiita.com/suharahiromichi/items/a046859da0c0883e7304
+
+
+[3] ELPI の組込述語 (stdlib編)
+
+https://qiita.com/suharahiromichi/items/1d200a9320e04ca21953
+
+
+[4] ELPI の組込述語 (std.set編)
+
+https://qiita.com/suharahiromichi/items/ed9a801717af73217108
+
+*/
+/* END */
