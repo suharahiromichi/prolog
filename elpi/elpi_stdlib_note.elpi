@@ -1,5 +1,5 @@
 /**
-ELPI の組込述語 (stdlib編)
+Elpi の組込述語 (stdlib編)
 =====================
 
 @suharahiromichi
@@ -253,6 +253,19 @@ pred test10.
 test10 :-
        std.rev [1, 2, 3] X,
        std.debug-print "rev is" X.
+
+/**
+次のように、ホーン節の順番を入れ換えると大丈夫です。
+*/
+pred rev i:list A, o:list A.
+rev L RL  :- rev.aux L []  RL.
+rev.aux [] L L.
+rev.aux [X|XS] ACC R :- std.spy (rev.aux XS [X|ACC] R).
+
+pred test10_1.
+test10_1 :-
+       rev X [9, 8, 7],
+       std.debug-print "new rev is" X.
 
 /**
 ## pred last i:list A, o:A.
