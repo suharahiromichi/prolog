@@ -255,7 +255,8 @@ test10 :-
        std.debug-print "rev is" X.
 
 /**
-次のように、ホーン節の順番を入れ換えると大丈夫です。
+次のように、ホーン節の順番を入れ換えると大丈夫ですが、
+バックトラックで戻ってくると、また無限ループになります。
 */
 pred rev i:list A, o:list A.
 rev L RL  :- rev.aux L []  RL.
@@ -290,9 +291,8 @@ test12 :-
 /**
 ## pred appendR o:list A, o:list A, o:list A.
 
-規約の2番目の例。非決定的な append である。
-以降では、述語が成功する条件のみならず、
-バックトラックしても成功するか、
+規約の2番目の例。非決定的な append である。第1と第2引数が「o」であることが異なる。
+以降では、述語が成功する条件のみならず、バックトラックしても成功するか、
 さらに、何回成功するか、も考えてみてください。
 */
 pred test13.
@@ -487,6 +487,7 @@ test27_1 :-
 option A 型の中身に対して処理をします。
 */
 pred test28.
+pred test28_1.
 pred minus i:int o:int.
 minus N M :-
       M is ~ N.
