@@ -153,8 +153,23 @@ rev4に第5第6の引数が追加されています。
 /**
 ## Pairでまとめる
 
-rev4をもみると、第1から第3引数と、第4から第6引数に対して同じことをしています。
-pair でまとめると、素朴な実装のrevと同じになるはずです。
+rev4をみると、第1から第3引数と、第4から第6引数に対して同じことをしています。
+ならば、リストの要素をpairでまとめると、素朴な実装のrevと同じものが使えるはずです。
+
+つまり簡単に書くと、左側に``[1,2,3]``が与えられた場合、
+``[(1,D1), (2,D2), (3,D3)]`` と ``[(A1,1), (A2,2), (A3,3)]`` をもとめ、
+前者を反転したもの
+``[(3,D3), (2,D2), (1,D1)]`` と ``[(A1,1), (A2,2), (A1,3)]`` が一致することで、
+``[(3,1), (2,2), (1,3)]`` を求め、左側から``[3,2,1]``を取り出す。
+
+また、右側に、``[3,2,1]``が与えられた場合、
+``[(A3,3), (A2,2), (A1,1)]`` と ``[(3,D3), (2,D2), (1,D1)]`` をもとめ、
+前者を反転したもの
+``[(A3,1), (A2,2), (A1,1)]`` と ``[(3,D3), (2,D2), (1,D1)]`` が一致することで、
+``[(3,1), (2,2), (1,1)]`` を求め、右側から``[1,2,3]``を取り出す。
+
+この手順のなかでは、pairの右と左に対称性があるため、
+無限再帰に陥ることを回避できます。
 
 ふたつのリストの要素どうしのPairをつくるには、ELPIにはstd.zipという
 組込述語がありますが[3]、双方向が欲しいので定義しなおします。
@@ -171,9 +186,9 @@ test5 :-
       print Y.
 
 reverse5 A1 D1 :-
-         zip A1 D1 A,
-         zip D1 A1 D,
-         rev A [] D.
+         zip A1 D1 A, print A,
+         zip D1 A1 D, print D,
+         rev A [] D, print A D.
 /**
 ELPI の std.zipの定義とおなじ。
 */
@@ -181,6 +196,11 @@ zip [_|_] [] _ :- fatal-error "zip on lists of different length".
 zip [] [_|_] _ :- fatal-error "zip on lists of different length".
 zip [X|LX] [Y|LY] [pr X Y|LR] :- zip LX LY LR.
 zip [] [] [].
+
+/**
+以上から、SWI-Prologのreverseの定義は、
+
+*/
 
 /**
 # おまけ
@@ -208,7 +228,7 @@ https://qiita.com/suharahiromichi/items/c4427a21a7d11f468e39
 
 [2] SWI-Prolog Predicate reverse/2
 
-https://www.swi-prolog.org/pldoc/man?predicate=reverse/2a
+https://www.swi-prolog.org/pldoc/doc_for?object=reverse/2
 
 
 [3] ELPI の組込述語 (stdlib編)
