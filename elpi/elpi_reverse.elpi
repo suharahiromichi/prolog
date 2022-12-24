@@ -1,0 +1,224 @@
+/**
+SWI-Prolog の Reverse述語
+=====================
+
+@suharahiromichi
+
+2022/12/25
+
+# はじめに
+
+リストを反転するreverse述語の実装を考えてみます。
+``reverse [1,2,3] Y`` に対して ``Y = [3, 2, 1]``を返すものです。
+
+これを素朴に実装すると、``reverse X [3,2,1]`` に対して ``X = [1, 2, 3]``
+がもとまらず、無限再帰になることがあると述べました。
+
+SWI-Prolog の reverse述語の実装は次のようになっていて、これを回避しています([2])。
+
+```Prolog
+reverse(Xs, Ys) :-
+  reverse(Xs, [], Ys, Ys).
+  
+reverse([], Ys, Ys, []).
+
+reverse([X|Xs], Rs, Ys, [_|Bound]) :-
+  reverse(Xs, [X|Rs], Ys, Bound).
+```
+
+どうしてこれで無限再帰を回避できるか、考えてみます。
+最近のPrologは、述語の引数の``i/o``を固定するので、
+素朴な実装であっても、reverseの第1引数を``i``、第2引数を``o``と固定することで、
+問題が回避できます。なので、これから述べることは、Prolog（らしい）プログラミングの一例
+として考えてください。
+
+ソースコードは以下にあります。ELPIを使っています。
+試してみたい、奇特なひとはいないとおもいますが、
+他のPrologでも（文法の違いを除いて同じ結果になると思います）。
+*/
+
+/**
+## 素朴なreverseの実装
+
+素朴な実装を示します。関数型言語での実装も似たようなかたちになると思います。
+動かしてみると問題なく動くのですが、バックトラックして戻ってくると、
+無限再帰になってしまいます。
+*/
+pred test.
+pred reverse o:list A, o:list A.
+pred rev o:list A, o:list A, o:list A.
+
+test :-
+      reverse [1, 2, 3] X,
+      print X,
+      reverse Y [3, 2, 1],
+      print Y.
+
+reverse A C :-
+        rev A [] C.
+rev [] C C.                             % (1)
+rev [X|A] B C :-
+    std.spy (rev A [X|B] C).            % (2)
+
+/**
+試してみたい場合は、
+
+```
+Goal> test.
+Y = [3, 2, 1]
+X = [1, 2, 3]
+
+Success:
+More? (Y/n)
+```
+に対して``Y``を選択してみてください。Ctrl-C で中断できます。
+
+rev の(1)と(2)の節を入れ換えると、バックトラックで戻らなくても無限再帰になります。
+カットオペレータを入れる程度の対策では解消できないと思います。
+*/
+
+/**
+## SWI-Prolog の reverseの実装
+
+SWI-Prologの実装をELPIに移したものです。
+*/
+pred test3.
+pred reverse3  o:list A, o:list A.
+pred rev3      o:list A, o:list A, o:list A, o:list A.
+
+test3 :-
+      reverse3 [1, 2, 3] X,
+      print X,
+      reverse3 Y [3, 2, 1],
+      print Y.
+
+reverse3 A D :-
+         rev3 A [] D D.
+rev3 [] A A [].
+rev3 [X | A] B C [Y | D] :-
+     std.spy (rev3 A [X | B] C D).
+
+/**
+```
+Goal> test3.
+Y = [3, 2, 1]
+X = [1, 2, 3]
+
+Success:
+More? (Y/n)Y
+Failure
+```
+
+代替節は残るものの``Y``を選択すると「正常にFailure」します。
+リストの反転に別解はありませんからね。
+*/
+
+/**
+## 引数を増やしてみる。
+
+上記にSWI-Prologのreverseの実装 revers3
+が、``reverse3 X Y``の X と Y の双方向に対して、対称に
+うまく動くのか不思議でなりませんでした。
+一見、rev3 や reverse3 には、なんの対称性がないように見えます。
+
+そこで、思いついたのは、本来は対称なのだけれども、
+それが省略されているのではないかということです。
+
+その対称性を見るために、引数を補ってみると次のようになります。
+*/
+pred test4.
+pred reverse4  o:list A, o:list A.
+pred rev4      o:list A, o:list A, o:list A, o:list A, o:list A, o:list A.
+
+test4 :-
+      reverse4 [1, 2, 3] X,
+      print X,
+      reverse4 Y [3, 2, 1],
+      print Y.
+
+reverse4 A D :-
+         rev4 A [] D D [] A.
+rev4 [] A A [] D D.
+rev4 [X | A] B C [Y | D] E F :-
+     std.spy (rev4 A [X | B] C D [Y | E] F).
+/**
+rev4に第5第6の引数が追加されています。
+これは、結果に影響しないので無駄なのは確かですが、
+そもそも、SWI-Prologの実装のrev3の第4引数も、論理式としてみると、
+結果に影響していないはずです。
+*/
+
+/**
+## Pairでまとめる
+
+rev4をもみると、第1から第3引数と、第4から第6引数に対して同じことをしています。
+pair でまとめると、素朴な実装のrevと同じになるはずです。
+
+ふたつのリストの要素どうしのPairをつくるには、ELPIにはstd.zipという
+組込述語がありますが[3]、双方向が欲しいので定義しなおします。
+``i/o``の定義が異なるだけで、中身は同じです。
+*/
+pred test5.
+pred reverse5  o:list A, o:list A.
+pred zip       o:list A, o:list A, o:list (pair A A).
+
+test5 :-
+      reverse5 [1, 2, 3] X,
+      print X,
+      reverse5 Y [3, 2, 1],
+      print Y.
+
+reverse5 A1 D1 :-
+         zip A1 D1 A,
+         zip D1 A1 D,
+         rev A [] D.
+/**
+ELPI の std.zipの定義とおなじ。
+*/
+zip [_|_] [] _ :- fatal-error "zip on lists of different length".
+zip [] [_|_] _ :- fatal-error "zip on lists of different length".
+zip [X|LX] [Y|LY] [pr X Y|LR] :- zip LX LY LR.
+zip [] [] [].
+
+/**
+# おまけ
+
+素朴な定義のreverseについては、ループ不変条件を与えることで、
+定理証明系Coqで証明することが出来ました([4])。
+
+reverse3ないしreverse4を証明することができるでしょうか。
+じつは、私にはそれができなかったことが、この記事を書く
+モチベーションになりました。
+
+reverse3からreverse5の定義では、Prologのもつ強力な
+ユニフィケーション機能をつかって、技巧を駆使しているのですが、
+そのことと「論理」とどのように関係があるのか、興味深いというか、
+むしろ、悩みの深いところです。
+*/
+
+/**
+# 文献
+
+[1] 論理としてのProlog
+
+https://qiita.com/suharahiromichi/items/c4427a21a7d11f468e39
+
+
+[2] SWI-Prolog Predicate reverse/2
+
+https://www.swi-prolog.org/pldoc/man?predicate=reverse/2a
+
+
+[3] ELPI の組込述語 (stdlib編)
+
+https://qiita.com/suharahiromichi/items/1d200a9320e04ca21953
+
+
+[4] 論理としてのProlog(その2)
+
+https://qiita.com/suharahiromichi/items/8e9960a7eebb7d33f760
+*/
+
+/**
+END
+*/
