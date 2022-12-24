@@ -72,6 +72,7 @@ X = [1, 2, 3]
 Success:
 More? (Y/n)
 ```
+
 に対して``Y``を選択してみてください。Ctrl-C で中断できます。
 
 rev の(1)と(2)の節を入れ換えると、バックトラックで戻らなくても無限再帰になります。
@@ -220,6 +221,6 @@ https://qiita.com/suharahiromichi/items/1d200a9320e04ca21953
 https://qiita.com/suharahiromichi/items/8e9960a7eebb7d33f760
 */
 
-/**
+/*
 END
 */
