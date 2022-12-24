@@ -271,7 +271,7 @@ test10_1 :-
 /**
 ## pred last i:list A, o:A.
 
-最後の引数が出力となる。空リストならfatal-errorになります。
+最後の要素が出力となる。空リストならfatal-errorになります。
 */
 pred test11.
 test11 :-
