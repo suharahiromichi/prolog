@@ -408,7 +408,14 @@ test21 :-
 
 /**
 ## pred map-i i:list A, i:(int -> A -> B -> prop), o:list B.
+
+0から始まるindex付きのmap。案外便利かも。
 */
+pred test22.
+test22 :-
+       std.map-i ["a","b","c"] (i\ a\ b\ b = pr i a) X,
+       print "map-i is" X.
+
 /**
 ## pred map-filter i:list A, i:(A -> B -> prop), o:list B.
 
@@ -467,6 +474,7 @@ test26 :-
 
 ``fold-map リスト 初期値 f Map結果 Fold結果`` のとき、fは、
 ``f x y z u``で、xとyが入力、zがMapのための計算、uがFoldのための計算です。
+coq-libの同名の述語とは定義が違うようです。
 */
 pred test27.
 test27 :-
