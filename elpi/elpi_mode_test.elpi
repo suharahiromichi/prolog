@@ -1,0 +1,92 @@
+/**
+ELPI の Modeのテスト
+=====================
+
+@suharahiromichi
+
+2023/01/15
+*/
+
+/**
+# モード
+
+``pred`` において ``i`` を設定した引数に未束縛の変数があった場合、
+ゴール（呼び出し側）と、プログラム（呼び出され側）のどちらも未束縛の変数どうしの場合しか、
+マッチが成功しません。
+
+例えば、AとXが未束縛の変数である場合、
+ゴール側の引数``f A``と、プログラムがわの引数``f X``はマッチするが、
+ゴール側``A``とプログラム側``f X``はマッチせす、ゴール側``f A`` とプログラム側``X``はマッチしません。
+
+このことを確かめるために、次のプログラムを実行してみます。
+*/
+
+/**
+## テストコード
+*/
+/* namespace test1 { */
+
+type f int -> int.
+
+pred main.
+main :-
+     driver 0,
+     driver (f 0),
+     driver (f (f 0)),
+     driver (f (f (f 0))),
+     driver A,
+     driver (f A),
+     driver (f (f A)),
+     driver (f (f (f A))).
+
+pred driver i:int.
+driver A :-
+     std.findall (test A _) L,
+     std.map L (l\ l1\ l = test _ l1) L1,
+     print A L1.
+
+pred test i:int,                /* ここの``i``に注目！*/
+          o:string.
+test _         "zero".
+test (f _)     "one".
+test (f (f _)) "two".
+
+/* } */
+
+/**
+## 結果
+
+1. ``i`` の場合
+
+この場合は、定数0にあたる部分を変数で与えているので、定数0でも変数でも同じ結果になる。
+このことは、Prologのパターンマッチに制限を加えている、と考えることもできる。
+
+```
+0               [zero]
+f 0             [zero, one]
+f (f 0)         [zero, one, two]
+f (f (f 0))     [zero, one, two]
+X0              [zero]
+f X0            [zero, one]
+f (f X0)        [zero, one, two]
+f (f (f X0))    [zero, one, two]
+```
+
+2. ``o``の場合
+
+変数であれば、どれにでもマッチする。Prologの通常の動作である。
+
+```
+0                    [zero]
+f 0                  [zero, one]
+f (f 0)              [zero, one, two]
+f (f (f 0))          [zero, one, two]
+f (f X0)             [zero, one, two]
+f (f (f X0))         [zero, one, two]
+f (f (f (f X0)))     [zero, one, two]
+f (f (f (f (f X0)))) [zero, one, two]
+```
+
+*/
+
+/* END */
