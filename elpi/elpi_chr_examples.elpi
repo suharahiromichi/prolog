@@ -9,6 +9,87 @@ Constraint Handling Rules (CHR) の例
 */
 
 /**
+1. 文法
+
+```
+CONSTRAINT ::= constraint CLIQUE { RULE* }
+CLIQUE ::= NAME+
+RULE ::= rule TO-MATCH TO-REMOVE GUARD TO-ADD .
+TO-MATCH  ::= SEQUENT*
+TO-REMOVE ::= \   SEQUENT+
+TO-ADD    ::= <=> SEQUENT
+GUARD     ::= |   TERM
+SEQUENT ::= TERM | ( VARIABLE : COMPOUND-TERM ?- COMPOUND-TERM )
+TERM ::= VARIABLE | NAME | ( COMPOUND-TERM )
+NAME ::= foo | bar ...
+VARIABLE ::= Foo | Bar ...
+COMPOUND-TERM ::= ...
+```
+
+2. Operational Semantics
+2. 操作的意味論
+
+As soon as a new constraint C is declared:
+新しい制約 C が宣言されるとすぐに、以下が実行される:
+
+Each rule (for the clique to which C belongs) is considered, in the
+order of declaration. Let's call it R.
+各ルール（C が属するルールの塊）は、宣言順に考慮されます。 これをRと呼びます。
+
+All constraints suspended on a list of variables with a non-empty
+intersection with the one on which C is suspended are considered (in
+no specified order). Let's call them CS
+C が中断されているものとの空でない交差を持つ変数のリストで中断されてい
+るすべての制約が考慮されます (指定された順序ではありません)。 CSと呼び
+ます。
+
+if R has n patterns, then all permutations of n-1 elements of CS and C
+are generated. I.e. C is put in any possible position in a list of
+other constraints taken from CS, let's call one of such lists S.
+Rにn個のパターンがある場合、CSとCのn-1要素のすべての順列が生成されます。
+つまり C は、CS から取得したその他の制約のリスト内の可能な位置に配置さ
+れます。そのようなリストの 1 つを S と呼びましょう。
+
+The constraints in S are frozen, i.e. all flexible terms (X a1..an)
+are replaced by (uvar cx [b1,..,bn]) where cx is a new constant for X
+and bi is the frozen term for ai. We now have SF.
+S の制約は固定されています。つまり、すべての柔軟な項 (X a1..an) は
+(uvar cx [b1,..,bn]) に置き換えられます。ここで、cx は X の新しい定数
+であり、bi は ai の固定された項です。 これで SF ができました。
+
+Each sequent in SF is matched against the corresponding pattern in
+R. If matching fails, the rule is aborted and the next one is
+considered.
+SF の各シークエントは、R の対応するパターンと照合されます。照合に失敗
+した場合、ルールは中止され、次のルールが考慮されます。
+
+All terms are spread in different name contexts, and now live in the
+disjoint union of all name contexts.
+すべての項はさまざまな名前の文脈に広がっており、現在ではすべての名前の
+文脈のdisjoint union (非交和 重なりのない和の) 中に存在しています。
+
+The guard is run. If it fails the rule is aborted and the next one is
+considered. It if succeeds all subsequent rules are aborted (committed
+choice).
+ガードが実行されます。 失敗した場合、ルールは中止され、次のルールが考
+慮されます。 成功すると、後続のすべてのルールが中止されます (コミット
+チョイス)。
+
+The new goal is resumed immediately (before any other active goal). If
+the name context for the new goal is given, then the new goal is
+checked to live in such context before resuming. If the name context
+is not specified the resumed goals lives in the disjoint union of all
+name contexts.
+新しい目標はすぐに再開されます (他のアクティブな目標の前に)。 新しいゴー
+ルのコンテキスト名が指定されている場合、再開する前に新しいゴールがその
+ようなコンテキストに存在するかどうかがチェックされます。 名前コンテキ
+ストが指定されていない場合、再開されたゴールは、すべての名前コンテキス
+トの互いに素な和集合の中に存在します。
+
+*/
+
+
+/**
 # even と odd
 
 X は、同時に even と odd ではあり得ない。
