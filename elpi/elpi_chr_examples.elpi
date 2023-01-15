@@ -1,0 +1,70 @@
+/**
+
+Constraint Handling Rules (CHR) の例
+
+--------
+
+2023_01_15 @suharahiromichi
+
+*/
+
+/**
+# even と odd
+
+X は、同時に even と odd ではあり得ない。
+
+
+- Elpiプログラミング言語チュートリアル
+
+https://gitlab.com/proofcafe/elpi/-/blob/main/tutorial_elpi_lang_jp.v
+
+
+- Extensions to λProlog implemented in ELPI
+
+https://github.com/LPCIC/elpi/blob/master/ELPI.md#syntactic-constraints
+
+*/
+
+type z nat.
+type s nat -> nat.
+
+pred even i:nat.
+even z.
+even (s X) :- odd X.
+even X :-
+     var X, declare_constraint (even X) [X].
+
+pred odd i:nat.
+odd (s X) :- even X.
+odd X :-
+    var X, declare_constraint (odd X) [X].
+
+/**
+以下の定義がないと、test はすべて成功してしまう。
+*/
+constraint even odd {
+  % 同じ X に関する 2 つの異なる競合する制約が制約ストアの一部である場合。
+  % 制約ストア：変数値に関する部分情報の格納場所
+  rule (even X) (odd X) <=>
+    (print X "can't be even and odd at the same time",
+     fail).
+}
+
+pred test0.
+pred test1.
+pred test2.
+test0 :-
+      even (X), odd (X).        /* Failure */
+test1 :-
+      even (s X), odd (s X).    /* Failure */
+test2 :-
+      even (X), odd (s X).      /* Success */
+
+
+/**
+#
+
+constraint-test.elpi をマージすること。
+*/
+
+/* END */
