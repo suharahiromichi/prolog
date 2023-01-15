@@ -50,20 +50,82 @@ constraint even odd {
      fail).
 }
 
-pred test0.
-pred test1.
-pred test2.
-test0 :-
+pred test00.
+pred test01.
+pred test02.
+test00 :-
       even (X), odd (X).        /* Failure */
-test1 :-
+test01 :-
       even (s X), odd (s X).    /* Failure */
-test2 :-
+test02 :-
       even (X), odd (s X).      /* Success */
 
 
 /**
-#
+# 順序集合を表す二項関係の制約
 
+## LEQ ``≦`` の制約
+
+https://ja.wikipedia.org/wiki/Constraint_Handling_Rules
+*/
+
+pred leq i:int, i:int.
+leq (uvar as A) (uvar as B) :- !,
+    declare_constraint (leq A B) [A,B].
+leq A           (uvar as B) :- !,
+    declare_constraint (leq A B) [B].
+leq (uvar as A) B         :- !,
+    declare_constraint (leq A B) [A].
+
+/**
+制約は重複できないため、Wikipediaにある test11 の成立する(LEQの例)だけなら、以下でよい。
+*/
+/*
+constraint leq {
+  rule \ (leq X X).                       % refl 反射律
+  rule (leq X Y) \ (leq Y X) <=> (Y = X). % atisym 半対称律
+  rule (leq X Y) (leq Y Z) <=> (leq X Z). % trans 推移性
+  rule (leq X Y) \ (leq X Y) <=> true.    % idempotence 等冪性
+}
+*/
+
+pred test11.
+test11 :-
+      leq X Y, leq Y Z, leq Z X.        /* Success */
+
+/**
+## LTN ``<`` を追加する。
+
+elpi/tests/sources/chrLEQ.elpi
+*/
+
+pred ltn i:int, i:int.
+ltn (uvar as A) (uvar as B) :- !,
+    declare_constraint (ltn A B) [A,B].
+ltn A           (uvar as B) :- !,
+    declare_constraint (ltn A B) [B].
+ltn (uvar as A) B         :- !,
+    declare_constraint (ltn A B) [A].
+
+constraint leq ltn {
+  rule (leq X Y) (ltn Y X) <=> false.           % incompat (FIRST!!)
+  rule (ltn X Y) (ltn Y X) <=> false.
+  rule (ltn X X) <=> false.
+  rule \ (leq X X).                             % refl
+  rule (leq X Y) \ (leq Y X) <=> (Y = X).       % atisym
+  rule (leq X Y) (leq Y Z) <=> (leq X Z).       % trans
+  rule (leq X Y) (ltn Y Z) <=> (ltn X Z).
+  rule (ltn X Y) (leq Y Z) <=> (ltn X Z).
+  rule (ltn X Y) (ltn Y Z) <=> (ltn X Z).
+  rule (leq X Y) \ (leq X Y).                   % idempotence
+  rule (ltn X Y) \ (ltn X Y).
+}
+
+pred test12.
+test12 :-
+     leq A B, leq B C, not (ltn C A), ltn A B, not(A = C).              /* Success */
+
+/**
 constraint-test.elpi をマージすること。
 */
 
