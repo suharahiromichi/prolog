@@ -100,7 +100,7 @@ elpi/tests/sources/chrLEQ.elpi
 */
 
 pred ltn i:int, i:int.
-ltn (uvar as A) (uvar as B) :- !,
+ltn (uvar as A) (uvar as B) :- !,               % uvar as A は、(var A) の意味
     declare_constraint (ltn A B) [A,B].
 ltn A           (uvar as B) :- !,
     declare_constraint (ltn A B) [B].
@@ -125,8 +125,115 @@ pred test12.
 test12 :-
      leq A B, leq B C, not (ltn C A), ltn A B, not(A = C).              /* Success */
 
+
 /**
-constraint-test.elpi をマージすること。
+# 最大公約数
+
+## 最大公約数（その1）
+
+https://github.com/LPCIC/elpi/blob/master/tests/sources/chrGCD.elpi
+
+99と66の最大公約数が11であるので、
+``gcd' 99 X, gcd' 66 X, X = p11`` が成り立つ。
 */
+
+kind prime type.
+type p11 prime.
+type p7 prime.
+pred gcd' i:int, i:prime.
+
+gcd' A (uvar as B) :- !,
+    declare_constraint (gcd' A B) [B].
+%% ここは素数でないといけない。
+gcd' 11 p11 :- print "prime 11 solved".
+gcd' 7 p7 :- print "prime 7 solved".
+
+constraint gcd' {
+  rule (gcd' A _) \ (gcd' B _) | (A = B).     % rule1
+  rule (gcd' A _) \ (gcd' B X) | (A < B) <=> (C is (B - A), gcd' C X). % rule2
+}
+
+pred test21.
+pred test22.
+pred test20.
+test21 :-                               /* 99と77のGCDは11である。 */
+       gcd' 99 X, gcd' 77 X, X = p11.
+test22 :-                               /* 14と77のGCDは7である。 */
+       gcd' 14 Y, gcd' 77 Y, Y = p7.
+test20 :-
+       gcd' 99 X, gcd' 66 X, gcd' 14 Y, gcd' 22 X, gcd' 77 Y,
+       % we then force a resumption to check only GCDs are there
+       X = p11, Y = p7.
+
+/**
+
+```
+gcd A Y, gcd B X, A = B
+------------------------ rule1
+true
+```
+
+```
+gcd A Y, gcd B X, A < B
+------------------------ rule2
+gcd A Y, gcd (B - A) X
+```
+
+```
+gcd 14 Y, gcd 77 Y
+------------------- rule2
+gcd 14 Y, gcd 63 Y
+------------------- rule2
+gcd 14 Y, gcd 7  Y
+------------------- gcd 7 Y
+gcd 14 Y, gcd 7 p7
+------------------- rule2
+gcd 7  Y, gcd 7 p7
+------------------- gcd 7 Y
+gcd 7 p7, gcd 7 p7
+------------------- rule1
+true
+```
+
+*/
+
+/**
+## 最大公約数（その2、ユーグリッドの互除法)
+
+https://ja.wikipedia.org/wiki/Constraint_Handling_Rules
+*/
+
+
+/**
+# 有限ドメイン (N.G.)
+
+https://www.swi-prolog.org/pldoc/man?section=chr-examples
+*/
+
+pred intersection o:list X, o:list X, o:list X.
+intersection [] L L.
+intersection [X|L1] L2 L3 :-
+             std.mem L2 X, !,
+             intersection L1 L2 L3.
+intersection [X|L1] L2 [X|L3] :-
+             intersection L1 L2 L3.
+
+pred dom i:X, o:list X.
+dom X L :-
+    print "don= " X L,
+    var X, !,
+    declare_constraint (dom X L) [X].
+
+constraint dom {
+  rule (dom X [])            <=> fail.
+  rule (dom X [Y])           <=> (X = Y).
+  rule (dom X L) | (nonvar X, std.mem L X) <=> true.
+  rule (dom X L1) (dom X L2) | (intersection L1 L2 L3) <=> (dom X L3).
+}
+
+pred test4.
+test4 :-                                /* Success */
+      dom A [1,2,3], dom A [3,4,5],     /* A = 3 */
+      print "A = " A.
 
 /* END */
