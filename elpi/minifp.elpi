@@ -1,0 +1,218 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% miniFp
+%
+% http://users.cecs.anu.edu.au/~tiu/teaching/lprolog/index.html
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% sig.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+kind tm type.	% syntactic category for miniFP terms
+kind ty type.	% syntactic category for miniFP types
+
+type bool ty.			% boolean type
+type integer ty.		% integer type
+type arr ty -> ty -> ty.	% arrow type constructor
+
+type tt, ff tm.	  % true and false
+type i int -> tm. % integers
+
+type abs (tm -> tm) -> tm.	% abstraction	
+type app tm -> tm -> tm. 		% application
+% type @ tm -> tm -> tm. 		% application
+% infixl @ 120.	   		% @ is infix, and associate to the left.
+
+type eq tm -> tm -> tm.		% equality
+type gt tm -> tm -> tm.		% greater than
+type ite tm -> tm -> tm -> tm.	% if-then-else
+
+% boolean operators
+type and, or tm -> tm -> tm.	
+type neg tm -> tm.
+
+% arithmetic operator
+type sum, minus, times tm -> tm -> tm. 
+
+% fixed point operator
+type fix (tm -> tm) -> tm.
+
+type eval tm -> tm -> o.
+type eval_bool tm -> tm -> o.
+
+type typeof tm -> ty -> o.
+
+type tailrec tm -> o.
+
+type prog string -> tm -> o.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% eval
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% values
+eval tt tt.
+eval ff ff.
+eval (i I) (i I).
+eval (abs M) (abs M).
+
+% applications
+eval (app M N) V :- eval M (abs F), eval N T, eval (F T) V. 
+
+% fixed points
+eval (fix F) V :- eval (F (fix F)) V.
+
+% if-then-else
+eval (ite B M _) V :- eval B tt, eval M V.
+eval (ite B _ N) V :- eval B ff, eval N V.
+
+% Special functions:
+% for simplicity, no partial applications are allowed for these functions
+
+eval (eq M N) tt :- 
+  (eval M (i I), eval N (i I)) ;
+  (eval M tt, eval N tt) ;
+  (eval M ff, eval N ff).
+
+eval (eq M N) ff :-
+  (eval M (i I), eval N (i J), (J < I ; I < J)) ;
+  (eval M tt, eval N ff) ;
+  (eval M ff, eval N tt).
+
+eval (gt M N) tt :-
+  eval M (i I), eval N (i J), I > J.
+eval (gt M N) ff :-
+  eval M (i I), eval N (i J), (I < J ; I = J).
+
+
+eval (and M N) V :- eval M V1, eval N V2, eval_bool (and V1 V2) V.
+eval (or M N) V  :- eval M V1, eval N V2, eval_bool (or V1 V2) V.
+eval (neg M)  V  :- eval M V1, eval_bool (neg V1) V.
+
+eval (sum M N) (i V) :- 
+  eval M (i V1), eval N (i V2), V is V1 + V2.
+eval (minus M N) (i V) :- 
+  eval M (i V1), eval N (i V2), V is V1 - V2.
+eval (times M N) (i V) :- 
+  eval M (i V1), eval N (i V2), V is V1 * V2.
+ 
+
+% booleans
+eval_bool (and tt tt) tt.
+eval_bool (and ff _) ff.
+eval_bool (and _  ff) ff.
+eval_bool (or ff ff) ff.
+eval_bool (or  tt _) tt.
+eval_bool (or  _  tt) tt.
+eval_bool (neg tt) ff.
+eval_bool (neg ff) tt.
+           
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% typeof
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+typeof (i _) integer.
+typeof tt bool.
+typeof ff bool.
+
+% allow equality predicate only on integers and boolean
+typeof (eq M N) bool :- typeof M bool, typeof N bool.
+typeof (eq M N) bool :- typeof M integer, typeof N integer.
+typeof (gt M N) bool :- typeof M integer, typeof N integer.
+
+% arithmetic operators
+typeof (sum M N) integer :- typeof M integer, typeof N integer.
+typeof (minus M N) integer :- typeof M integer, typeof N integer. 
+typeof (times M N) integer :- typeof M integer, typeof N integer.
+
+% boolean operators
+typeof (and M N) bool :- typeof M bool, typeof N bool.
+typeof (or M N) bool :- typeof M bool, typeof N bool.
+typeof (neg N) bool :- typeof N bool.
+
+typeof (ite B M N) A :- typeof B bool, typeof M A, typeof N A.
+
+typeof (app M N) B :- typeof M (arr A B), typeof N A.
+typeof (abs M) (arr A B) :- pi x\ typeof x A => typeof (M x) B.
+typeof (fix F) A :- pi x\ typeof x A => typeof (F x) A.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Tail-recursion recognizer
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+type trec (tm -> tm) -> o.
+
+trec (f\ f).
+trec (f\ _).
+trec (f\ abs (M f)) :- pi x\ trec (f\ M f x).
+trec (f\ app (M f) _) :- trec M.
+trec (f\ ite _ (P f) (Q f)) :- trec P, trec Q.
+
+tailrec (fix F) :- trec F.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Some example programs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fibonacci
+prog "fib" 
+(fix fib\ abs n\
+  ite (eq n (i 0)) % if
+      (i 0)        % then 
+      (ite (eq n (i 1))
+           (i 1)
+           (sum (app fib (minus n (i 1))) (app fib (minus n (i 2))))
+      )
+).
+
+% Factorial
+prog "fact" 
+(fix fact\ abs n\
+  ite (gt n (i 0)) 
+      (times n (app fact (minus n (i 1))))
+      (i 1)
+).
+
+% Tail-recursive factorial
+prog "trec-fact"
+(fix fact\ abs n\ abs m\
+  ite (eq n (i 0)) 
+      m
+      (app (app fact (minus n (i 1))) (times n m))
+).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% eval test
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pred go1 o:tm.
+go1 X :-
+    eval (app {prog "fib"} (i 10)) X.
+
+pred go2 o:tm.
+go2 X :-
+    eval (app {prog "fact"} (i 10)) X.
+
+pred go3 o:tm.
+go3 X :-
+    eval (app (app {prog "trec-fact"} (i 10)) (i 1)) X.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% typeof  test
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pred go4 o:ty.
+go4 X :-
+    typeof {prog "fib"} X.
+
+pred go5 o:ty.
+go5 X :-
+    typeof {prog "fact"} X.
+
+pred go6 o:ty.
+go6 X :-
+    typeof {prog "trec-fact"} X.
+
+% END
