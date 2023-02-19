@@ -142,15 +142,75 @@ typeof (fix F) A :- pi x\ typeof x A => typeof (F x) A.
 % Tail-recursion recognizer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-type trec (tm -> tm) -> o.
+%tailrec (fix f\ abs n\ abs m\ ite _ _ (app (app f _) _)).
 
+type tail tm -> tm -> o.
+
+tailrec M :- print M, fail.
+tailrec (fix M) :- pi f\ tail f (M f).
+
+tail F (abs M) :- pi n\ tail F (M n).
+tail F (ite _ N M) :- tail F N; tail F M.
+tail F (app F _).
+tail F (app N _) :- tail F N.
+tail F (app _ M) :- tail F M.
+
+/*
+type f int -> int.
+type n int.
+type m int.
+tailrec M :- print M, fail.
+tailrec (fix M) :- tail f (M f).
+tail F (abs M) :- tail F (M n).
+tail F (ite _ N M) :- tail F N; tail F M.
+tail F (app F _).
+tail F (app N _) :- tail F N.
+tail F (app _ M) :- tail F M.
+*/
+
+/*
+OK:
+
+type f int -> int.
+type n int.
+type m int.
+tailrec M :- print M, fail.
+tailrec (fix M) :- tailrec (M f).
+tailrec (abs M) :- tailrec (M n).
+tailrec (ite _ N M) :- tailrec N; tailrec M.
+tailrec (app f _).
+tailrec (app N _) :- tailrec N.
+tailrec (app _ M) :- tailrec M.
+*/
+
+/*
+type test (tm -> tm) -> o.
+test F :- print "test=" F, fail.
+test (f\ (abs n\ X)) :- print X, test (f\ X).
+test (f\ (ite X Y Z)) :- print (ite X Y Z), test (f\ X), test (f\ Y), test (f\ Z).
+test (f\ tt).
+test (f\ (i _)).
+
+
+type trec (tm -> tm) -> o.
+trec X :- print "trec =" X, fail.
+trec (f\ (app M N)) :- trec (f\ M), trec (f\ N).
+trec (f\ (ite _ M N)) :- trec (f\ M), (trec f\ N).
+trec (f\ (i _)).
+trec (f\ f).
+trec (f\ abs (x\ M)) :- pi x\ trec (f\ M).
+trec (f\ sum M N) :- trec (f\ M), (trec f\ N).
+trec (f\ minus M N) :- trec (f\ M), (trec f\ N).
+trec (f\ times M N) :- trec (f\ M), (trec f\ N).
+*/
+
+/*
 trec (f\ f).
 trec (f\ _).
 trec (f\ abs (M f)) :- pi x\ trec (f\ M f x).
 trec (f\ app (M f) _) :- trec M.
 trec (f\ ite _ (P f) (Q f)) :- trec P, trec Q.
-
-tailrec (fix F) :- trec F.
+*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Some example programs
@@ -214,5 +274,21 @@ go5 X :-
 pred go6 o:ty.
 go6 X :-
     typeof {prog "trec-fact"} X.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% typeof  test
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pred go7.
+go7 :-
+    tailrec {prog "fib"}.
+
+pred go8.
+go8 :-
+    tailrec {prog "fact"}.
+
+pred go9.
+go9 :-
+    tailrec {prog "trec-fact"}.
 
 % END
