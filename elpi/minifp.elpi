@@ -51,6 +51,7 @@ type prog string -> tm -> o.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % eval
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% eval X _ :- print "eval = " X, fail.
 
 % values
 eval tt tt.
@@ -143,17 +144,23 @@ typeof (fix F) A :- pi x\ typeof x A => typeof (F x) A.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %tailrec (fix f\ abs n\ abs m\ ite _ _ (app (app f _) _)).
-
-type tail tm -> tm -> o.
+%これは成功するのだが、``_``を変数にすると失敗する。
+%ELPIの高階ユニフィケーションが正しくないのだろうか。
 
 tailrec M :- print M, fail.
-tailrec (fix M) :- pi f\ tail f (M f).
+tailrec (fix M) :- pi f\ trec f (M f).
 
-tail F (abs M) :- pi n\ tail F (M n).
-tail F (ite _ N M) :- tail F N; tail F M.
-tail F (app F _).
-tail F (app N _) :- tail F N.
-tail F (app _ M) :- tail F M.
+type trec tm -> tm -> o.
+trec F (abs M) :- pi n\ trec F (M n).
+
+% fix (f\ M) の f が、以下の場所に限って出現すること。
+trec _ M :- print M, fail.
+trec F (ite _ N _) :- trec F N.         % then節
+trec F (ite _ _ N) :- trec F N.         % else節
+trec F (app F _).                       % apply の第一引数
+trec F (app N _) :- trec F N.
+
+% 出現しないことのチェックは、まだできていない。
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Some example programs
@@ -168,6 +175,14 @@ prog "fib"
            (i 1)
            (sum (app fib (minus n (i 1))) (app fib (minus n (i 2))))
       )
+).
+
+% Tail-recursive Fibonattii
+prog "trec-fib"
+(fix fib\ abs n\ abs a\ abs b\
+  ite (eq n (i 0))
+      a
+      (app (app (app fib (minus n (i 1))) b) (sum a b))
 ).
 
 % Factorial
@@ -194,6 +209,10 @@ pred go1 o:tm.
 go1 X :-
     eval (app {prog "fib"} (i 10)) X.
 
+pred go11 o:tm.
+go11 X :-
+    eval (app (app (app {prog "trec-fib"} (i 10)) (i 0)) (i 1)) X.
+
 pred go2 o:tm.
 go2 X :-
     eval (app {prog "fact"} (i 10)) X.
@@ -210,6 +229,10 @@ pred go4 o:ty.
 go4 X :-
     typeof {prog "fib"} X.
 
+pred go41 o:ty.
+go41 X :-
+    typeof {prog "trec-fib"} X.
+
 pred go5 o:ty.
 go5 X :-
     typeof {prog "fact"} X.
@@ -223,15 +246,19 @@ go6 X :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 pred go7.
-go7 :-
+go7 :-                                  % failur
     tailrec {prog "fib"}.
 
+pred go71.
+go71 :-                                 % success
+    tailrec {prog "trec-fib"}.
+
 pred go8.
-go8 :-
+go8 :-                                  % failure
     tailrec {prog "fact"}.
 
 pred go9.
-go9 :-
+go9 :-                                  % success
     tailrec {prog "trec-fact"}.
 
 % END
