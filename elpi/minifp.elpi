@@ -137,7 +137,7 @@ typeof (ite B M N) A :- typeof B bool, typeof M A, typeof N A.
 
 typeof (app M N) B :- typeof M (arr A B), typeof N A.
 typeof (abs M) (arr A B) :- pi x\ typeof x A => typeof (M x) B.
-typeof (fix F) A :- pi x\ typeof x A => typeof (F x) A.
+typeof (fix F) A :- pi f\ typeof f A => typeof (F f) A.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Tail-recursion recognizer
@@ -155,12 +155,32 @@ trec F (abs M) :- pi n\ trec F (M n).
 
 % fix (f\ M) の f が、以下の場所に限って出現すること。
 trec _ M :- print M, fail.
-trec F (ite _ N _) :- trec F N.         % then節
-trec F (ite _ _ N) :- trec F N.         % else節
-trec F (app F _).                       % apply の第一引数
-trec F (app N _) :- trec F N.
+trec F (ite C N _) :- not (in F C), trec F N.         % then節
+trec F (ite C _ N) :- not (in F C), trec F N.         % else節
+trec F (app F M) :- not (in F M).                     % apply の第一引数
+trec F (app N M) :- trec F N, not (in F M).
 
-% 出現しないことのチェックは、まだできていない。
+% 出現しないことのチェックのための、出現チェック述語
+type occr tm -> o.
+occr (fix M) :- pi f\ in f (M f).
+
+type in tm -> tm -> o.
+in F M :- print "in =" F "in" M, fail.
+in F F.
+in F (ite N _ _) :- in F N.
+in F (ite _ N _) :- in F N.
+in F (ite _ _ N) :- in F N.
+in F (app N _) :- in F N.
+in F (app _ N) :- in F N.
+in F (abs M) :- pi x\ in F (M x).
+in F (fix M) :- pi f\ in F (M f).
+in F (eq N1 N2) :- in F N1; in F N2.
+in F (and N1 N2) :- in F N1; in F N2.
+in F (or N1 N2) :- in F N1; in F N2.
+in F (neq N) :- in F N.
+in F (sum N1 N2) :- in F N1; in F N2.
+in F (minus N1 N2) :- in F N1; in F N2.
+in F (mult N1 N2) :- in F N1; in F N2.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Some example programs
@@ -182,7 +202,8 @@ prog "trec-fib"
 (fix fib\ abs n\ abs a\ abs b\
   ite (eq n (i 0))
       a
-      (app (app (app fib (minus n (i 1))) b) (sum a b))
+%     (app (app (app fib (minus (app fib n) (i 1))) b) (sum a b))   % 無理に末尾再帰でない例
+      (app (app (app fib (minus n (i 1))) b) (sum a b))             % OK
 ).
 
 % Factorial
@@ -209,56 +230,76 @@ pred go1 o:tm.
 go1 X :-
     eval (app {prog "fib"} (i 10)) X.
 
-pred go11 o:tm.
-go11 X :-
-    eval (app (app (app {prog "trec-fib"} (i 10)) (i 0)) (i 1)) X.
-
 pred go2 o:tm.
 go2 X :-
-    eval (app {prog "fact"} (i 10)) X.
+    eval (app (app (app {prog "trec-fib"} (i 10)) (i 0)) (i 1)) X.
 
 pred go3 o:tm.
 go3 X :-
+    eval (app {prog "fact"} (i 10)) X.
+
+pred go4 o:tm.
+go4 X :-
     eval (app (app {prog "trec-fact"} (i 10)) (i 1)) X.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % typeof  test
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-pred go4 o:ty.
-go4 X :-
+pred go11 o:ty.
+go11 X :-
     typeof {prog "fib"} X.
 
-pred go41 o:ty.
-go41 X :-
+pred go12 o:ty.
+go12 X :-
     typeof {prog "trec-fib"} X.
 
-pred go5 o:ty.
-go5 X :-
+pred go13 o:ty.
+go13 X :-
     typeof {prog "fact"} X.
 
-pred go6 o:ty.
-go6 X :-
+pred go14 o:ty.
+go14 X :-
     typeof {prog "trec-fact"} X.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% typeof  test
+% tailrec  test
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-pred go7.
-go7 :-                                  % failur
+pred go21.
+go21 :-                                  % failure
     tailrec {prog "fib"}.
 
-pred go71.
-go71 :-                                 % success
+pred go22.
+go22 :-                                 % success
     tailrec {prog "trec-fib"}.
 
-pred go8.
-go8 :-                                  % failure
+pred go23.
+go23 :-                                  % failure
     tailrec {prog "fact"}.
 
-pred go9.
-go9 :-                                  % success
+pred go24.
+go24 :-                                  % success
     tailrec {prog "trec-fact"}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% in  test
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pred go31.
+go31 :-                                  % failure
+    occr {prog "fib"}.
+
+pred go32.
+go32 :-                                 % success
+    occr {prog "trec-fib"}.
+
+pred go33.
+go33 :-                                  % failure
+    occr {prog "fact"}.
+
+pred go34.
+go34 :-                                  % success
+    occr {prog "trec-fact"}.
 
 % END
