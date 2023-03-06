@@ -26,6 +26,7 @@ type app tm -> tm -> tm. 		% application
 % infixl @ 120.	   		% @ is infix, and associate to the left.
 
 type eq tm -> tm -> tm.		% equality
+type neq tm -> tm -> tm.		% not equality
 type gt tm -> tm -> tm.		% greater than
 type ite tm -> tm -> tm -> tm.	% if-then-else
 
@@ -177,10 +178,63 @@ in F (fix M) :- pi f\ in F (M f).
 in F (eq N1 N2) :- in F N1; in F N2.
 in F (and N1 N2) :- in F N1; in F N2.
 in F (or N1 N2) :- in F N1; in F N2.
-in F (neq N) :- in F N.
+in F (neq N1 N2) :- in F N1; in F N2.
 in F (sum N1 N2) :- in F N1; in F N2.
 in F (minus N1 N2) :- in F N1; in F N2.
-in F (mult N1 N2) :- in F N1; in F N2.
+in F (times N1 N2) :- in F N1; in F N2.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Subterms
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+kind ctx type.
+type ctx tm -> tm -> ctx.
+
+pred subt i:tm, o:tm, o:ctx.
+subt T T (ctx X X) :- not (var T).
+subt (ite T1 T2 T3) A (ctx X (ite TT T2 T3)) :- subt T1 A (ctx X TT).
+subt (ite T1 T2 T3) A (ctx X (ite T1 TT T3)) :- subt T2 A (ctx X TT).
+subt (ite T1 T2 T3) A (ctx X (ite T1 T2 TT)) :- subt T3 A (ctx X TT).
+subt (app T1 T2)    A (ctx X (app TT T2)) :- subt T1 A (ctx X TT).
+subt (app T1 T2)    A (ctx X (app T1 TT)) :- subt T2 A (ctx X TT).
+%pi x\ (subt (abs T1) A (ctx X (abs (x \ TT))) :- subt (T1 x) A (ctx X TT)).
+%pi x\ (subt (fix T1) A (ctx X (fix (x \ TT))) :- subt (T1 x) A (ctx X TT)).
+subt (eq T1 T2)     A (ctx X (eq TT T2)) :- subt T1 A (ctx X TT).
+subt (eq T1 T2)     A (ctx X (eq T1 TT)) :- subt T2 A (ctx X TT).
+subt (and T1 T2)    A (ctx X (and TT T2)) :- subt T1 A (ctx X TT).
+subt (and T1 T2)    A (ctx X (and T1 TT)) :- subt T2 A (ctx X TT).
+subt (or T1 T2)     A (ctx X (or TT T2)) :- subt T1 A (ctx X TT).
+subt (or T1 T2)     A (ctx X (or T1 TT)) :- subt T2 A (ctx X TT).
+subt (neq T1 T2)    A (ctx X (neq TT T2)) :- subt T1 A (ctx X TT).
+subt (neq T1 T2)    A (ctx X (neq T1 TT)) :- subt T2 A (ctx X TT).
+subt (sum T1 T2)    A (ctx X (sum TT T2)) :- subt T1 A (ctx X TT).
+subt (sum T1 T2)    A (ctx X (sum T1 TT)) :- subt T2 A (ctx X TT).
+subt (minus T1 T2)  A (ctx X (minus TT T2)) :- subt T1 A (ctx X TT).
+subt (minus T1 T2)  A (ctx X (minus T1 TT)) :- subt T2 A (ctx X TT).
+subt (times T1 T2)  A (ctx X (times TT T2)) :- subt T1 A (ctx X TT).
+subt (times T1 T2)  A (ctx X (times T1 TT)) :- subt T2 A (ctx X TT).
+
+pred test.
+test :-
+     std.findall (subt (ite tt (i 1) (i 2)) _ _) L,
+     print L.
+
+pred test1.
+test1 :-
+     std.findall (subt (sum (sum (i 1) (i 2)) (sum (i 3) (i 4))) _ _) L,
+     print L.
+
+/*
+pred test2.
+test2 :-
+      TERM = (abs x\ sum (sum (i 1) x) x),
+      subt TERM T (ctx A C),
+      print "A=" A ",T=" T ",C=" C ",TERM=" TERM,
+      print "CCCC=" C,
+      A = T,
+      print "CCCC=" C,
+      print "TERM=" TERM.
+*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Some example programs
