@@ -359,7 +359,7 @@ go34 :-                                  % success
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 type a, b, c, d tm.
 
-type copy tm -> tm -> o.
+pred copy o:tm, o:tm.
 copy a a.
 copy b b.
 copy c c.
@@ -368,7 +368,7 @@ copy (app M N) (app P Q) :- copy M P, copy N Q.
 copy (fun M) (fun N) :- pi x\ copy x x => copy (M x) (N x).
 
 
-type abst tm -> tm -> (tm -> tm) -> o.
+pred abst o:tm, o:tm, o:(tm -> tm).
 abst T S M :- pi x\ copy S x => copy T (M x).
 
 
@@ -382,22 +382,30 @@ Success:
 
 
 abst (app a (app (fun x\ app b x) c)) b M.
+Success:
   M =  c0 \ app a (app (fun c1 \ app c0 c1) c)
 
 
 
 (2) 逆にも使える：
+ただし、Coq-ELPIのように、Copyのi/oを決めるとNGになる。
+
 abst T b (x\ app a (app x c)).
 Success:
   T = app a (app b c)
 
 
 (3) サブターム(S)とコンテキスト(M)
-abst (app a (app b c)) S M.
+ただし、Coq-ELPIのように、CopyにcutをいれるとNGになる。
+λxのスコープ内の定数項も取り出せるが、λ変数を含む項は、λ式全体でないと取り出せない。
+
+abst (app a (app (fun x\ app b x) c)) S M.
 */
 
 
 
+
+/* 予備 */
 
 
 type subst (tm -> tm) -> tm -> tm -> o.
