@@ -20,7 +20,7 @@ type arr ty -> ty -> ty.	% arrow type constructor
 type tt, ff tm.	  % true and false
 type i int -> tm. % integers
 
-type abs (tm -> tm) -> tm.	% abstraction	
+type fun (tm -> tm) -> tm.	% abstraction	
 type app tm -> tm -> tm. 		% application
 % type @ tm -> tm -> tm. 		% application
 % infixl @ 120.	   		% @ is infix, and associate to the left.
@@ -58,10 +58,10 @@ type prog string -> tm -> o.
 eval tt tt.
 eval ff ff.
 eval (i I) (i I).
-eval (abs M) (abs M).
+eval (fun M) (fun M).
 
 % applications
-eval (app M N) V :- eval M (abs F), eval N T, eval (F T) V. 
+eval (app M N) V :- eval M (fun F), eval N T, eval (F T) V. 
 
 % fixed points
 eval (fix F) V :- eval (F (fix F)) V.
@@ -137,14 +137,14 @@ typeof (neg N) bool :- typeof N bool.
 typeof (ite B M N) A :- typeof B bool, typeof M A, typeof N A.
 
 typeof (app M N) B :- typeof M (arr A B), typeof N A.
-typeof (abs M) (arr A B) :- pi x\ typeof x A => typeof (M x) B.
+typeof (fun M) (arr A B) :- pi x\ typeof x A => typeof (M x) B.
 typeof (fix F) A :- pi f\ typeof f A => typeof (F f) A.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Tail-recursion recognizer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%tailrec (fix f\ abs n\ abs m\ ite _ _ (app (app f _) _)).
+%tailrec (fix f\ fun n\ fun m\ ite _ _ (app (app f _) _)).
 %これは成功するのだが、``_``を変数にすると失敗する。
 %ELPIの高階ユニフィケーションが正しくないのだろうか。
 
@@ -152,7 +152,7 @@ tailrec M :- print M, fail.
 tailrec (fix M) :- pi f\ trec f (M f).
 
 type trec tm -> tm -> o.
-trec F (abs M) :- pi n\ trec F (M n).
+trec F (fun M) :- pi n\ trec F (M n).
 
 % fix (f\ M) の f が、以下の場所に限って出現すること。
 trec _ M :- print M, fail.
@@ -173,7 +173,7 @@ in F (ite _ N _) :- in F N.
 in F (ite _ _ N) :- in F N.
 in F (app N _) :- in F N.
 in F (app _ N) :- in F N.
-in F (abs M) :- pi x\ in F (M x).
+in F (fun M) :- pi x\ in F (M x).
 in F (fix M) :- pi f\ in F (M f).
 in F (eq N1 N2) :- in F N1; in F N2.
 in F (and N1 N2) :- in F N1; in F N2.
@@ -183,9 +183,9 @@ in F (sum N1 N2) :- in F N1; in F N2.
 in F (minus N1 N2) :- in F N1; in F N2.
 in F (times N1 N2) :- in F N1; in F N2.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Subterms
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%
+% subterm
+%%%%%%%%%%%%%%
 
 kind ctx type.
 type ctx tm -> tm -> ctx.
@@ -197,7 +197,7 @@ subt (ite T1 T2 T3) A (ctx X (ite T1 TT T3)) :- subt T2 A (ctx X TT).
 subt (ite T1 T2 T3) A (ctx X (ite T1 T2 TT)) :- subt T3 A (ctx X TT).
 subt (app T1 T2)    A (ctx X (app TT T2)) :- subt T1 A (ctx X TT).
 subt (app T1 T2)    A (ctx X (app T1 TT)) :- subt T2 A (ctx X TT).
-%pi x\ (subt (abs T1) A (ctx X (abs (x \ TT))) :- subt (T1 x) A (ctx X TT)).
+%pi x\ (subt (fun T1) A (ctx X (fun (x \ TT))) :- subt (T1 x) A (ctx X TT)).
 %pi x\ (subt (fix T1) A (ctx X (fix (x \ TT))) :- subt (T1 x) A (ctx X TT)).
 subt (eq T1 T2)     A (ctx X (eq TT T2)) :- subt T1 A (ctx X TT).
 subt (eq T1 T2)     A (ctx X (eq T1 TT)) :- subt T2 A (ctx X TT).
@@ -224,17 +224,15 @@ test1 :-
      std.findall (subt (sum (sum (i 1) (i 2)) (sum (i 3) (i 4))) _ _) L,
      print L.
 
-/*
 pred test2.
 test2 :-
-      TERM = (abs x\ sum (sum (i 1) x) x),
+      TERM = (fun x\ sum (sum (i 1) x) x),
       subt TERM T (ctx A C),
       print "A=" A ",T=" T ",C=" C ",TERM=" TERM,
       print "CCCC=" C,
       A = T,
       print "CCCC=" C,
       print "TERM=" TERM.
-*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Some example programs
@@ -242,7 +240,7 @@ test2 :-
 
 % Fibonacci
 prog "fib" 
-(fix fib\ abs n\
+(fix fib\ fun n\
   ite (eq n (i 0)) % if
       (i 0)        % then 
       (ite (eq n (i 1))
@@ -253,7 +251,7 @@ prog "fib"
 
 % Tail-recursive Fibonattii
 prog "trec-fib"
-(fix fib\ abs n\ abs a\ abs b\
+(fix fib\ fun n\ fun a\ fun b\
   ite (eq n (i 0))
       a
 %     (app (app (app fib (minus (app fib n) (i 1))) b) (sum a b))   % 無理に末尾再帰でない例
@@ -262,7 +260,7 @@ prog "trec-fib"
 
 % Factorial
 prog "fact" 
-(fix fact\ abs n\
+(fix fact\ fun n\
   ite (gt n (i 0)) 
       (times n (app fact (minus n (i 1))))
       (i 1)
@@ -270,7 +268,7 @@ prog "fact"
 
 % Tail-recursive factorial
 prog "trec-fact"
-(fix fact\ abs n\ abs m\
+(fix fact\ fun n\ fun m\
   ite (eq n (i 0)) 
       m
       (app (app fact (minus n (i 1))) (times n m))
@@ -355,5 +353,73 @@ go33 :-                                  % failure
 pred go34.
 go34 :-                                  % success
     occr {prog "trec-fact"}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% copy
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+type a, b, c, d tm.
+
+type copy tm -> tm -> o.
+copy a a.
+copy b b.
+copy c c.
+copy d d.
+copy (app M N) (app P Q) :- copy M P, copy N Q.
+copy (fun M) (fun N) :- pi x\ copy x x => copy (M x) (N x).
+
+
+type abst tm -> tm -> (tm -> tm) -> o.
+abst T S M :- pi x\ copy S x => copy T (M x).
+
+
+/*
+(1) 通常の使い方
+（バックトラックすると、抽象化対象がない場合を出力するので、唯一解で止めること）
+
+abst (app a (app b c)) b M.
+Success:
+  M = c0 \ app a (app c0 c)
+
+
+abst (app a (app (fun x\ app b x) c)) b M.
+  M =  c0 \ app a (app (fun c1 \ app c0 c1) c)
+
+
+
+(2) 逆にも使える：
+abst T b (x\ app a (app x c)).
+Success:
+  T = app a (app b c)
+
+
+(3) サブターム(S)とコンテキスト(M)
+abst (app a (app b c)) S M.
+*/
+
+
+
+
+
+type subst (tm -> tm) -> tm -> tm -> o.
+subst M T S :- pi x\ copy x T => copy (M x) S.
+
+
+/*
+?- copy (fun x\ fun y\ app y x) M.
+Success:
+  M = fun c0 \ fun c1 \ app c1 c0
+*/
+
+
+/*
+subst (x\ app a (app x c)) b X.
+Success:
+  X = app a (app b c)
+
+subst M b (app a (app x c)).
+Success:
+  M = c0 \ app a (app c0 c)
+*/
+
 
 % END
