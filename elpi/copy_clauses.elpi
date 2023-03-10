@@ -1,0 +1,258 @@
+/**
+λProlog の copy-clauses 技法
+=====================
+
+@suharahiromichi
+
+2023/03/09
+
+# はじめに
+
+λProlog ([1]) 固有のプログラムテクニックに copy-clauses があります([2])。
+HOAS (Higher-order abstract syntax) のような、データ構造としての高階な項
+を扱うために重要な手法です。
+
+しかし、いかにも初見殺しなところがあるので、実例を動かしながら調べてみましょう。
+
+
+λPrologの処理系としてはELPIを使いますが、Coq-ELPIの機能は使いません。
+Coq-ELPIの場合については最後に触れます。
+
+
+このコードは以下にあります。
+
+https://github.com/suharahiromichi/prolog/blob/master/elpi/copy_clauses.elpi
+*/
+
+/**
+# HOASの例
+
+具体的な問題として、CoqのGallina項の内部構造([4])を単純化したような、HOASを定義します。
+
+最初に断っておきますが、今回はこのGallina項の簡約系を作るわけではありません。
+このあと、適用(apply)や、抽象(abstruct)という言葉を使いますが、
+これらは、λPrologのデータ構造に対する操作であり、Gallina項に対するものではありません。
+
+型``tm``が項を表します。
+
+``a``、``b``、``c``、``d``を定項とします。
+
+関数適用は、``app``コンストラクタで表現します。``app``の後ろに``tm``型のリストをとります。
+
+関数(いわゆるλ式)は、``fun``コンストラクタで表現します。``fun``の後ろにλPrologのλ項
+（例：``x\F``）を描きます。
+
+Coqでの表記 ``fun x => a b x`` は、``fun x\ app [a, b, x]`` となります。
+*/
+
+kind tm type.
+
+type a, b, c, d tm.
+type app list tm -> tm.
+type fun (tm -> tm) -> tm.
+
+/**
+# copy 述語
+
+``tm``上のcopy述語を次のように定義します。
+``app L``のcopyはmap述語を使います。
+ただし、ELPIのmap述語は双方向性がないので、定義しなおしています。
+
+判じ物なのは、``fun M``のcopyです。
+``fun M``のMはλPrologの関数なので、M単体で述語に渡すことはできません。
+なので、``x`` というローカルな変数を用意して``M``に適用したかたち
+で、``M x``を``M1 x``にcopyします。
+
+ただし、``x``を``x``にcopyするために、これもローカルな述語定義（ルール）``copy x x``を用意します。
+これは、copy述語の一連の定義の先頭に追加されます。ISO Prolog の``asserta``に似ていますが、
+``pi x\ copy x x => copy (M x) (M1 x)`` の終了時に無効になります。
+
+また、``pi x\ copy x x => copy (M x) (M1 x)`` は、
+``pi (x\ (copy x x => copy (M x) (M1 x)))`` の意味です。
+``pi x\ (copy (M x) (M1 x) :- copy x x)`` と書いても同じですが、
+習慣として``=>``を使うようです。括弧も少なくて済みます。
+
+copy述語は、双方向に使いたいので、引数はすべて``o:``としておきます。
+*/
+
+pred map o:list A, i:(A -> B -> prop), o:list B.
+map [] _ [].
+map [X|XS] F [Y|YS] :- F X Y, map XS F YS.
+
+pred copy o:tm, o:tm.
+%copy M M1 :- print "M=" M ", M1=" M1, fail.
+copy a a.
+copy b b.
+copy c c.
+copy d d.
+copy (app L) (app L1) :- map L copy L1.
+copy (fun M) (fun M1) :- pi x\ copy x x => copy (M x) (M1 x).
+
+/**
+# Copy の例
+
+このcopyの例を見てみます。test1 は、SをTにcopyする、
+ただし、``b``は``d``にcopyするルールを優先する、と読みます。
+これは、``copy S T``の実行先立って、テンポラリに``d``を``b``にコピーする
+``copy b d``のルールが追加されることにより実現されます。
+*/
+
+pred sample_term_1 o:tm.
+sample_term_1 (app [a, b, c]).
+
+pred test1.
+test1 :-
+      sample_term_1 S,
+      copy b d => copy S T,
+      print T.
+
+
+/**
+# subst 述語
+
+copyを使って、λPrologの関数``M``に、項``T``を適用して``S``を得る述語を定義します。
+substというよりapplyですが、文献([2])に準じてsubstとします。
+
+すなわち、``x`` というローカルな変数を用意して``M``に適用したかたち ``M x``で、
+それを``S``にcopyします。ただし、``x``を``T``にcopyするルールを追加します（仮定します）。
+
+適用という意味では、``S = M T`` と同じですが、これがλ変数のユニフィケーションだけで済ませる
+「浅い」適用であるのに対して、これから定義するのは、項のcopyを伴う「深い」適用といえるものです。
+
+それではつまらないお思う向きは、次節の実行例まで待っていてください。
+
+subst述語は、双方向に使いたいので、引数はすべて``o:``としておきます。
+*/
+
+pred subst o:(tm -> tm), o:tm, o:tm.
+subst M T S :- pi x\ copy x T => copy (M x) S.
+
+/**
+# 実行例
+
+subst述語は、項への関数の適用として定義されていますが、
+これを逆方向に使って、項を抽象して関数を得ることもできます。
+また、全解を求めることは、サブタームとそれが出現する文脈を求めることに他なりません。
+*/
+
+/**
+## 基本的な例
+*/
+
+/**
+## 単純な例
+
+- subst の例
+
+- 逆向きに使った、抽象化の例
+
+- 全解を求めた、サブタームと文脈の例
+*/
+
+pred sample_term_2 o:(tm -> tm).
+sample_term_2 (x\ app [a, x, c]).
+
+pred test2.
+test2 :-
+      sample_term_2 M,
+      subst M d S,
+      print S.
+
+pred test21.
+test21 :-
+       sample_term_1 S,
+       subst M b S,
+       print M.
+
+pred test22.
+test22 :-
+       sample_term_1 S,
+       subst M T S,
+       print "M=" M ", T=" T ", S=" S.
+
+/**
+## 少し複雑な例
+
+- 逆向きに使った、抽象化の例
+  ネストの深いところの定数を抽象する。
+
+- 全解を求めた、サブタームとその文脈の例
+  ネストの深いところにある定数からなる項も取り出せるが、λ変数を含む項は、λ式全体でないと取り出せない。
+*/
+
+pred sample_term_3 o:tm.
+sample_term_3 (fun x\ app [a, x, (fun y\ app [b, y, c])]).
+
+pred test31.
+test31 :-
+       sample_term_3 S,
+       subst M b S,
+       print "M=" M.
+
+pred test32.
+test32 :-
+       sample_term_3 S,
+       subst M T S,
+       print "M=" M ", T=" T.
+
+/**
+# Coq-ELPI のcopy述語
+*/
+
+Coq-ELPIでは [3] に、CoqのHOASのためのcopy述語が定義されています。
+ただし、copy述語は、第一引数がin、第二引数がoutと固定されていて、
+cutオペレータが散りばめられているので、前節までのように、双方向に使うことはできません。
+必要に応じて定義することになります。
+
+また、``copy-ctx-item``、``copy-arity``、``copy-indt-decl``、
+``copy-fields``、``copy-constructor``
+という述語は、その中からcopyを呼び出します。例えば、チュートリアル[5]では、
+
+``pi a\ copy P a => copy-indt-decl Decl (Decl' a))``
+
+として、inductive なコンストラクタ（parameter、inductive、record）をcopyします。
+このチュートリアルの例は、``Decl``を``Decl' a``にコピーする、ただし、``P``は``a``
+にコピーする、と読めます。
+
+
+/**
+# 文献
+
+
+[1] λProlog (Lambda Prolog) の紹介
+
+https://qiita.com/suharahiromichi/items/a046859da0c0883e7304
+
+
+
+[2] PROGRAMMING WITH HIGHER-ORDER LOGIC
+
+https://www.cambridge.org/core/books/programming-with-higherorder-logic/90460BBDEF7ADE2B2B738DD05A39ECC5
+
+
+
+[3] ``coq-elpi/elpi/coq-lib.elpi``
+
+https://github.com/LPCIC/coq-elpi/blob/master/elpi/coq-lib.elpi
+
+
+
+[4] Tutorial on the HOAS for Coq terms
+
+https://lpcic.github.io/coq-elpi/tutorial_coq_elpi_HOAS.html
+
+
+
+[5] Tutorial Coq-ELPI Comamand
+
+https://lpcic.github.io/coq-elpi/tutorial_coq_elpi_command.html
+
+
+
+[6] Tutorial Coq-ELPI Tacitcs
+
+https://lpcic.github.io/coq-elpi/tutorial_coq_elpi_tactic.html
+
+*/
+
+/* END */
