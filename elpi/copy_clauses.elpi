@@ -10,14 +10,18 @@
 
 λProlog ([1]) 固有のプログラムテクニックに copy-clauses があります([2])。
 HOAS (Higher-order abstract syntax) のような、データ構造としての高階な項
-を扱うために重要な手法です。
-
+を扱うために重要な手法です（注）。
 しかし、いかにも初見殺しなところがあるので、実例を動かしながら調べてみましょう。
+
+
+（注）例えば、自然数からなる任意のリストが与えられた時、値が「2」である要素をλ抽象するプログラム
+（``[1,2,3,2,3]`` が入力されたら、``λx.[1,x,3,x,3]`` を出力するプログラム）
+を作ることを考えてください。ISO Prologを含む大抵のプログラミング言語では、
+リストを分解して連結する必要があり、この例のようなラムダ式そのものを出力ことはできないはずです。
 
 
 λPrologの処理系としてはELPIを使いますが、Coq-ELPIの機能は使いません。
 Coq-ELPIの場合については最後に触れます。
-
 
 このコードは以下にあります。
 
@@ -98,7 +102,7 @@ copy (fun M) (fun M1) :- pi x\ copy x x => copy (M x) (M1 x).
 */
 
 pred sample_term_1 o:tm.
-sample_term_1 (app [a, b, c]).
+sample_term_1 (app [a, b, c, b, c]).
 
 pred test1.
 test1 :-
@@ -136,10 +140,6 @@ subst述語は、項への関数の適用として定義されていますが、
 */
 
 /**
-## 基本的な例
-*/
-
-/**
 ## 単純な例
 
 - subst の例
@@ -150,7 +150,7 @@ subst述語は、項への関数の適用として定義されていますが、
 */
 
 pred sample_term_2 o:(tm -> tm).
-sample_term_2 (x\ app [a, x, c]).
+sample_term_2 (x\ app [a, x, c, x, c]).
 
 pred test2.
 test2 :-
@@ -197,22 +197,22 @@ test32 :-
 
 /**
 # Coq-ELPI のcopy述語
-*/
 
 Coq-ELPIでは [3] に、CoqのHOASのためのcopy述語が定義されています。
-ただし、copy述語は、第一引数がin、第二引数がoutと固定されていて、
+また、[5]と[6]で、使用例が説明されています。
+
+ただし、[3]で定義されたcopy述語は、第一引数がin、第二引数がoutと固定されていて、
 cutオペレータが散りばめられているので、前節までのように、双方向に使うことはできません。
 必要に応じて定義することになります。
-
 また、``copy-ctx-item``、``copy-arity``、``copy-indt-decl``、
 ``copy-fields``、``copy-constructor``
 という述語は、その中からcopyを呼び出します。例えば、チュートリアル[5]では、
 
 ``pi a\ copy P a => copy-indt-decl Decl (Decl' a))``
 
-として、inductive なコンストラクタ（parameter、inductive、record）をcopyします。
-このチュートリアルの例は、``Decl``を``Decl' a``にコピーする、ただし、``P``は``a``
-にコピーする、と読めます。
+のように、Coqのコンストラクタ（parameter、inductive、record）の定義の一部を抽象する例が掲載されています。
+この例は、``Decl``を``Decl' a``にコピーする、ただし、``P``は``a``にコピーする、と読めます。
+*/
 
 
 /**
