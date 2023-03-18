@@ -13,9 +13,9 @@ pred iscnst i:tm.
 iscnst o.
 
 pred ax o:int, o:tm, o:tm.
-ax 0 (o + a) a.
-ax 1 (a + b + c) (a + (b + c)).
+ax 1 (o + a) a.
 ax 2 (~ a + a) o.
+ax 3 (a + b + c) (a + (b + c)).
 
 pred copy o:tm, o:tm.
 copy a a.
@@ -49,14 +49,14 @@ test :-
 
 pred test1.
 test1 :-
-      ax 1 L _,
+      ax 3 L _,
       mksubtm L S C,
       print "S=" S,
       print "C=" C.
 
 pred test2.
 test2 :-
-      ax 1 L1 _,
+      ax 3 L1 _,
       generalize L1 FL1,
       print "L1=" L1,
       print "FL1=" FL1.
@@ -114,7 +114,7 @@ cpair L1 R1 L2 R2 Z_R1 Z_CTX_R2 :-
 
 pred test3.
 test3 :-
-   ax 1 L1 R1,          % L1 = (a + b) + c,     R1 = a + (b + c)
+   ax 3 L1 R1,          % L1 = (a + b) + c,     R1 = a + (b + c)
    ax 2 L2 R2,          % L2 = (~ a) + a,       R2 = o
    cpair L1 R1 L2 R2 C1 C2,
    print "C1 =" C1 ", C2=" C2.
@@ -125,9 +125,9 @@ ax 4 (~ a + (a + b)) b.         % test3 の結果であるべき。
 
 pred test4.
 test4 :-
-   ax 0 L0 R0,
-   ax 4 L4 R4,
-   cpair L4 R4 L0 R0 C1 C2,
+   ax 4 L1 R1,
+   ax 1 L2 R2,
+   cpair L1 R1 L2 R2 C1 C2,
    print "C1 =" C1 ", C2=" C2.
 
 /* END */
