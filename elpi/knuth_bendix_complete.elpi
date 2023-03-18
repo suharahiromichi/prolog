@@ -1,0 +1,97 @@
+kind tm type.
+type a, b, c, d tm.
+type o tm.
+type (+) tm -> tm -> tm.
+type (~) tm -> tm.
+
+pred isvar i:tm.
+isvar a.
+isvar b.
+isvar c.
+
+pred iscnst i:tm.
+iscnst o.
+
+pred ax o:int, o:tm, o:tm.
+ax 0 (o + a) a.
+ax 1 (a + b + c) (a + (b + c)).
+ax 2 (~ a + a) o.
+
+pred copy o:tm, o:tm.
+copy a a.
+copy b b.
+copy c c.
+copy d d.
+copy o o.
+copy (A + B) (A1 + B1) :- copy A A1, copy B B1.
+copy (~ A) (~ A1) :- copy A A1.
+
+pred subst o:(tm -> tm), o:tm, o:tm.
+subst M T S :- pi x\ copy x T => copy (M x) S.
+
+pred mksubtm i:tm, o:tm, o:(tm -> tm).
+mksubtm T S C :- subst C S T, not (var S), not (isvar S), not (iscnst S).
+
+pred generalize i:tm, o:(tm -> tm -> tm -> tm).
+generalize T F :-
+            pi x\ copy a x => pi y\ copy b y => pi z\ copy c z => copy T (F x y z), !.
+
+pred test.
+test :-
+     ax _ L R,
+     print "L=" L,
+     print "R=" R.
+
+pred test1.
+test1 :-
+      ax 1 L _,
+      mksubtm L S C,
+      print "S=" S,
+      print "C=" C.
+
+pred test2.
+test2 :-
+      ax 1 L1 _,
+      generalize L1 FL1,
+      print "L1=" L1,
+      print "FL1=" FL1.
+
+
+pred unify i:tm, i:tm, o:tm, o:tm, o:tm, o:tm, o:tm, o:tm.
+unify L' L X' Y' Z' X Y Z :-
+      generalize L' F',
+      generalize L F,
+      F' X' Y' Z' = F X Y Z,
+      print "L'=" (F' X' Y' Z'),
+      print "L=" (F X Y Z),
+      print "X'=" X',
+      print "Y'=" Y',
+      print "Z'=" Z',
+      print "X=" X,
+      print "Y=" Y,
+      print "Z=" Z.
+
+pred go.
+go :-
+   ax 1 L1 R1,          % L1 = (a + b) + c,     R1 = a + (b + c)
+   ax 2 L2 R2,          % L2 = (~ a) + a,       R2 = o
+   print "L1=" L1 ", R1=" R1,
+   print "L2=" L2 ", R2=" R2,
+/*
+   L1' = a + b,
+   C1' = (x\ x + c),
+   L1 = C1' L1',
+*/
+   mksubtm L1 L1' C1',
+   unify L1' L2 X' Y' Z' X Y Z,
+   generalize R1 FR1,
+   generalize R2 FR2,
+   Z_R1 = FR1 X' Y' Z',
+   print "σR1=" Z_R1,
+   CTX_R2 = C1' (FR2 X Y Z),
+   print "CTX R2=" CTX_R2,
+   generalize CTX_R2 FCR2,
+   Z_CTX_R2 = FCR2 X' Y' Z',
+   print "σCTX R2=" Z_CTX_R2.
+
+/* END */
