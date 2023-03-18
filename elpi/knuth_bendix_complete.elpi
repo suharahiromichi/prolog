@@ -36,6 +36,11 @@ pred generalize i:tm, o:(tm -> tm -> tm -> tm).
 generalize T F :-
             pi x\ copy a x => pi y\ copy b y => pi z\ copy c z => copy T (F x y z), !.
 
+pred generalize2 i:(tm -> tm), o:(tm -> tm -> tm -> tm -> tm).
+generalize2 T F :-
+           pi u\ copy u u =>
+            pi x\ copy a x => pi y\ copy b y => pi z\ copy c z => copy (T u) (F u x y z), !.
+
 pred test.
 test :-
      ax _ L R,
@@ -71,27 +76,58 @@ unify L' L X' Y' Z' X Y Z :-
       print "Y=" Y,
       print "Z=" Z.
 
-pred go.
-go :-
-   ax 1 L1 R1,          % L1 = (a + b) + c,     R1 = a + (b + c)
-   ax 2 L2 R2,          % L2 = (~ a) + a,       R2 = o
+pred cpair i:tm, i:tm, i:tm, i:tm, o:tm, o:tm.
+cpair L1 R1 L2 R2 Z_R1 Z_CTX_R2 :-
    print "L1=" L1 ", R1=" R1,
    print "L2=" L2 ", R2=" R2,
 /*
-   L1' = a + b,
-   C1' = (x\ x + c),
-   L1 = C1' L1',
+   L2' = a + b,
+   C2' = (x\ x + c),
+   L1 = C2' L2',
 */
-   mksubtm L1 L1' C1',
-   unify L1' L2 X' Y' Z' X Y Z,
+   mksubtm L1 L2' C2',
+   unify L2' L2 X' Y' Z' X Y Z,
    generalize R1 FR1,
    generalize R2 FR2,
-   Z_R1 = FR1 X' Y' Z',
+   Z_R1 = FR1 X' Y' Z',           % R1
+
+   generalize2 C2' FC2',
+   Z_CTX_R2 = FC2' (FR2 X Y Z) X' Y' Z',
    print "σR1=" Z_R1,
-   CTX_R2 = C1' (FR2 X Y Z),
-   print "CTX R2=" CTX_R2,
-   generalize CTX_R2 FCR2,
-   Z_CTX_R2 = FCR2 X' Y' Z',
    print "σCTX R2=" Z_CTX_R2.
+
+
+/*
+   print "σR1=" Z_R1,
+   CTX_R2 = C2' (FR2 X Y Z),      % L1におけるL2'の出現をR2で置き換える。
+   print "σR1=" Z_R1,
+   print "CTX R2=" CTX_R2,
+   print "σR1=" Z_R1,
+   generalize CTX_R2 FCR2,              % これで X4 が c になる。ここに無理がある。
+   print "CTX R2=" CTX_R2,
+   print "σR1=" Z_R1,
+   Z_CTX_R2 = FCR2 X' Y' Z',
+   print "σR1=" Z_R1,
+   print "σCTX R2=" Z_CTX_R2.
+*/
+
+
+pred test3.
+test3 :-
+   ax 1 L1 R1,          % L1 = (a + b) + c,     R1 = a + (b + c)
+   ax 2 L2 R2,          % L2 = (~ a) + a,       R2 = o
+   cpair L1 R1 L2 R2 C1 C2,
+   print "C1 =" C1 ", C2=" C2.
+
+
+
+ax 4 (~ a + (a + b)) b.         % test3 の結果であるべき。
+
+pred test4.
+test4 :-
+   ax 0 L0 R0,
+   ax 4 L4 R4,
+   cpair L4 R4 L0 R0 C1 C2,
+   print "C1 =" C1 ", C2=" C2.
 
 /* END */
