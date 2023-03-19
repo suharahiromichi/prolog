@@ -99,20 +99,28 @@ cpair (L1 => R1) (L2 => R2) (Z_R1 => Z_CTX_R2) :-
    print "σR1=" Z_R1,
    print "σCTX R2=" Z_CTX_R2.
 
+pred getvar i:int, o:tm.
+getvar 0 a.
+getvar 1 b.
+getvar 2 c.
 
-/*
-   print "σR1=" Z_R1,
-   CTX_R2 = C2' (FR2 X Y Z),      % L1におけるL2'の出現をR2で置き換える。
-   print "σR1=" Z_R1,
-   print "CTX R2=" CTX_R2,
-   print "σR1=" Z_R1,
-   generalize CTX_R2 FCR2,              % これで X4 が c になる。ここに無理がある。
-   print "CTX R2=" CTX_R2,
-   print "σR1=" Z_R1,
-   Z_CTX_R2 = FCR2 X' Y' Z',
-   print "σR1=" Z_R1,
-   print "σCTX R2=" Z_CTX_R2.
-*/
+pred intro i:eq.
+intro (X => Y) :- intro2 X 0 N1, intro2 Y N1 _.
+
+pred intro2 i:tm, i:int, o:int.
+intro2 X N N1 :- print X N N1, fail.
+intro2 X N N1 :- var X, getvar N X, N1 is N + 1.
+intro2 a N N.
+intro2 b N N.
+intro2 c N N.
+intro2 o N N.
+intro2 (X + Y) N N2 :- intro2 X N N1, intro2 Y N1 N2.
+intro2 (~ X) N N1 :- intro2 X N N1.
+
+pred test5.
+test5 :-
+      intro (X + Y + X => Y),
+      print (X + Y + X => Y).
 
 
 pred test3.
@@ -120,7 +128,8 @@ test3 :-
    ax 3 (L1 => R1),          % L1 = (a + b) + c,     R1 = a + (b + c)
    ax 2 (L2 => R2),          % L2 = (~ a) + a,       R2 = o
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
-   print "C1 =" C1 ", C2=" C2.
+   intro (C1 => C2),
+   print "C1 => C2 : " (C1 => C2).
 
 
 
@@ -131,6 +140,7 @@ test4 :-
    ax 4 (L1 => R1),
    ax 1 (L2 => R2),
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
-   print "C1 =" C1 ", C2=" C2.
+   intro (C1 => C2),
+   print "C1 => C2 :" (C1 => C2).
 
 /* END */
