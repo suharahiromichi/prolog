@@ -117,26 +117,56 @@ intro2 o N N.
 intro2 (X + Y) N N2 :- intro2 X N N1, intro2 Y N1 N2.
 intro2 (~ X) N N1 :- intro2 X N N1.
 
-pred test5.
-test5 :-
+pred test55.
+test55 :-
       intro (X + Y + X => Y),
       print (X + Y + X => Y).
 
 
-pred test3.
-test3 :-
+pred red i:tm, i:eq, o:tm.
+red T1 (R => L) T2 :-
+   generalize R FR,
+   generalize L FL,
+   T1 = FR X Y Z,
+   T2 = FL X Y Z.
+
+
+pred test66.
+test66 :-
+      ax 1 (R => L),
+      red (o + b) (R => L) T,
+      print "T=" T.
+
+/*************************/
+
+ax 4 (~ a + (a + b) => b).         % test3 の結果であるべき。
+
+/*************************/
+
+
+pred test4.
+test4 :-
    ax 3 (L1 => R1),          % L1 = (a + b) + c,     R1 = a + (b + c)
    ax 2 (L2 => R2),          % L2 = (~ a) + a,       R2 = o
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
    intro (C1 => C2),
-   print "C1 => C2 : " (C1 => C2).
+   ax 1 (R => L),
+   red C2 (R => L) C2',
+   print "C1 => C2 : " (C1 => C2').
 
 
+pred test5.
+test5 :-
+   ax 4 (L1 => R1),
+   ax 4 (L2 => R2),
+   cpair (L1 => R1) (L2 => R2) (C1 => C2),
+   intro (C1 => C2),
+   print "C1 => C2 :" (C1 => C2).
+/* ただし、2番目の解 */
 
-ax 4 (~ a + (a + b) => b).         % test3 の結果であるべき。
 
-pred test4.
-test4 :-
+pred test6.
+test6 :-
    ax 4 (L1 => R1),
    ax 1 (L2 => R2),
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
@@ -144,3 +174,5 @@ test4 :-
    print "C1 => C2 :" (C1 => C2).
 
 /* END */
+
+
