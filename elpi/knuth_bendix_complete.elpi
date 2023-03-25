@@ -186,6 +186,33 @@ test5 :- common 4 4 _.
 pred test6.
 test6 :- common 4 2 _.
 
+pred test7.
+test7 :-
+      common 6 5 (C1 => C2),
+      ax 6 (R => L),
+      red C2 (R => L) C2',
+      print "C1 => C2 : " (C1 => C2').
+
+pred test8.
+test8 :- common 2 7 _.
+
+pred test9.
+test9 :- common 8 1 _.
+
+pred test10.
+test10 :- common 8 3 _.
+/* NG 論文の誤植ではないか。 */
+
+pred test11.
+test11 :- common 8 3 _.
+
+pred test12.
+test12 :- common 11 4 _.
+/* NG */
+
+pred test13.
+test13 :- common 12 4 _.
+
 /* END */
 
 
