@@ -124,12 +124,17 @@ test55 :-
 
 
 pred red i:tm, i:eq, o:tm.
+/* 外側優先とする。 */
 red T1 (R => L) T2 :-
    generalize R FR,
    generalize L FL,
    T1 = FR X Y Z,
    T2 = FL X Y Z.
-
+red (A + B) E (A1 + B1) :-
+    (red A E A1; A = A1),
+    (red B E B1; B = B1).
+red (~ A) E (~ A1) :-
+    (red A E A1; A = A1).
 
 pred test66.
 test66 :-
@@ -138,11 +143,29 @@ test66 :-
       print "T=" T.
 
 /*************************/
+/* for TEST */
 
-ax 4 (~ a + (a + b) => b).         % test3 の結果であるべき。
+ax 4 (~ a + (a + b) => b).
+ax 5 (~ ~ a + b => a + b).
+ax 6 (a + o => a).
+ax 7 (~ ~ a => a).
+ax 8 (a + ~ a => o).
+ax 9 (~ o => o).
+ax 10 (a + (~ a + b) => b).
+ax 11 (a + (b + ~ (a + b)) => o).
+ax 12 (a + ~ (a + b) => ~ b).
+ax 13 (~ (a + b) => ~ a + ~ b).
 
 /*************************/
 
+
+pred common i:int, i:int, o:eq.
+common M N (C1 => C2) :-
+   ax M (L1 => R1),
+   ax N (L2 => R2),
+   cpair (L1 => R1) (L2 => R2) (C1 => C2),
+   intro (C1 => C2),
+   print "C1 => C2 :" (C1 => C2).
 
 pred test4.
 test4 :-
@@ -156,22 +179,12 @@ test4 :-
 
 
 pred test5.
-test5 :-
-   ax 4 (L1 => R1),
-   ax 4 (L2 => R2),
-   cpair (L1 => R1) (L2 => R2) (C1 => C2),
-   intro (C1 => C2),
-   print "C1 => C2 :" (C1 => C2).
+test5 :- common 4 4 _.
 /* ただし、2番目の解 */
 
 
 pred test6.
-test6 :-
-   ax 4 (L1 => R1),
-   ax 1 (L2 => R2),
-   cpair (L1 => R1) (L2 => R2) (C1 => C2),
-   intro (C1 => C2),
-   print "C1 => C2 :" (C1 => C2).
+test6 :- common 4 2 _.
 
 /* END */
 
