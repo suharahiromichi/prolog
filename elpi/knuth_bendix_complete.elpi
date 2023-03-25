@@ -160,12 +160,13 @@ ax 13 (~ (a + b) => ~ a + ~ b).
 
 
 pred common i:int, i:int, o:eq.
-common M N (C1 => C2) :-
+common M N E :-
    ax M (L1 => R1),
    ax N (L2 => R2),
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
    intro (C1 => C2),
-   print "C1 => C2 :" (C1 => C2).
+   (C1 >> C2, !, E = (C1 => C2); E = (C2 => C1)),
+   print "C1 => C2 :" E.
 
 pred test4.
 test4 :-
@@ -224,7 +225,10 @@ A == A.
 
 pred (>>) i:tm, i:tm.
 A >> A1 :- print "A=" A, print "A1=" A1, fail.
+a >> o.
+b >> o.
 b >> a.
+c >> o.
 c >> a.
 c >> b.
 A + B >> A1 + B1 :- A == A1, !, B >> B1.
