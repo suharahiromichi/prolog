@@ -159,17 +159,28 @@ ax 13 (~ (a + b) => ~ a + ~ b).
 /*************************/
 
 
+% 結果のreduce 仮番
+pred reduce i:tm, o:tm.
+reduce T T1 :-
+    ax 1 (R1 => L1),
+    (red T (R1 => L1) T2, !, print "red T2 =" T2; T2 = T),
+    ax 6 (R6 => L6),
+    (red T2 (R6 => L6) T1, !, print "red T1 =" T1; T1 = T2).
+
 pred common i:int, i:int, o:eq.
 common M N E :-
    ax M (L1 => R1),
    ax N (L2 => R2),
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
    intro (C1 => C2),
-   (C1 >> C2, !, E = (C1 => C2); E = (C2 => C1)),
+   reduce C1 C1',
+   reduce C2 C2',
+   (C1' >> C2', !, E = (C1' => C2'); E = (C2' => C1')),
    print "C1 => C2 :" E.
 
 pred test4.
-test4 :-
+test4 :- common 3 2 _.
+/*
    ax 3 (L1 => R1),          % L1 = (a + b) + c,     R1 = a + (b + c)
    ax 2 (L2 => R2),          % L2 = (~ a) + a,       R2 = o
    cpair (L1 => R1) (L2 => R2) (C1 => C2),
@@ -177,7 +188,7 @@ test4 :-
    ax 1 (R => L),
    red C2 (R => L) C2',
    print "C1 => C2' : " (C1 => C2').
-
+*/
 
 pred test5.
 test5 :- common 4 4 _.
@@ -188,11 +199,13 @@ pred test6.
 test6 :- common 4 2 _.
 
 pred test7.
-test7 :-
+test7 :- common 6 5 _.
+/*
       common 6 5 (C1 => C2),
       ax 6 (R => L),
       red C2 (R => L) C2',
       print "C1 => C2' : " (C1 => C2').
+*/
 
 pred test8.
 test8 :- common 2 7 _.
@@ -201,21 +214,25 @@ pred test9.
 test9 :- common 8 1 _.
 
 pred test10.
-test10 :-
+test10 :- common 3 8 _.
+/*
        common 3 8 (C1 => C2),   % 2解め。
        ax 1 (R => L),
        red C2 (R => L) C2',
        print "C1 => C2 : " (C1 => C2').
+*/
 
 pred test11.
 test11 :- common 8 3 _.
 
 pred test12.
-test12 :-
+test12 :- common 4 11 _.
+/*
        common 4 11 (C1 => C2),    % 2解め。
        ax 6 (R => L),
        red C2 (R => L) C2',
        print "C1 => C2' : " (C1 => C2').
+*/
 
 pred test13.
 test13 :- common 4 12 _.
