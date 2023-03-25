@@ -219,4 +219,33 @@ test12 :-
 pred test13.
 test13 :- common 4 12 _.
 
+pred (==) i:tm, i:tm.
+A == A.
+
+pred (>>) i:tm, i:tm.
+A >> A1 :- print "A=" A, print "A1=" A1, fail.
+b >> a.
+c >> a.
+c >> b.
+A + B >> A1 + B1 :- A == A1, !, B >> B1.
+A + _ >> A1 + _ :- A >> A1.
+_ + _ >> A :- isvar A.
+_ + _ >> ~ _.
+~ A >> ~ A1 :- !, A >> A1.
+~ _ >> A :- isvar A.
+
+pred test77.
+test77 :-
+       not (a + b + c >> a + b + c),
+       not (a >> a),
+       b >> a,                     not (a >> b),
+       a + b + c >> a + (b + c),   not (a + (b + c) >> a + b + c),
+       a + b >> ~ a,               not (~ a >> a + b),
+       b + b + c >> a + b + c,
+       a + c + c >> a + b + c.
+       
+pred test78.
+test78 :-
+       std.spy(a + c >> a + b).
+    
 /* END */
