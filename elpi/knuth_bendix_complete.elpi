@@ -153,7 +153,7 @@ ax 8 (a + ~ a => o).
 ax 9 (~ o => o).
 ax 10 (a + (~ a + b) => b).
 ax 11 (a + (b + ~ (a + b)) => o).
-ax 12 (a + ~ (a + b) => ~ b).
+ax 12 (a + ~ (a + b) => ~ b).           % a + ~(b + a) だとうまくいかない。
 ax 13 (~ (a + b) => ~ a + ~ b).
 
 /*************************/
@@ -200,15 +200,18 @@ pred test9.
 test9 :- common 8 1 _.
 
 pred test10.
-test10 :- common 8 3 _.
-/* NG 論文の誤植ではないか。 */
+test10 :-
+       common 3 8 (C1 => C2),   % 2解め。
+       ax 1 (R => L),
+       red C2 (R => L) C2',
+       print "C1 => C2 : " (C1 => C2').
 
 pred test11.
 test11 :- common 8 3 _.
 
 pred test12.
 test12 :- common 11 4 _.
-/* NG */
+/* *** NG *** */
 
 pred test13.
 test13 :- common 12 4 _.
