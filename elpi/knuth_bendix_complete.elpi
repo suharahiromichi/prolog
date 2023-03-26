@@ -291,14 +291,55 @@ test83 :-
        joinable (~ ~ a + o => a) [~ ~ a + o => a].
 
 
+pred delete i:A, i:list A, o:list A.
+delete X [X | L] L.
+delete X [Y | L] [Y | L1]  :- delete X L L1.
+
+pred take-drop i:list A, o:A, o:list A.
+take-drop L X L1 :- std.mem L X, delete X L L1.
+
 pred permutation i:list A, o:list A.
-pred del i:A, i:list A, o:list A.
-
 permutation [] [].
-permutation L [X | L2] :- del X L L1, permutation L1 L2.
+permutation L [X | L2] :- delete X L L1, permutation L1 L2.
 
-del X [X | L] L.
-del X [Y | L] [Y | L1]  :- del X L L1.
+/* 先頭のひとつを取り除けるなら、取り除く。取り除けないなら失敗する。 */
+pred interreduce1 i:list eq, o:list eq.
+interreduce1 [E | EX] ES :-
+             permutation EX ES,
+             print "EX ES=" EX ES,
+             joinable E ES.
+
+pred test811.
+test811 :-
+%    interreduce1 [~ o + a => a, ~ o => o, o + a => a] L,
+     interreduce1 [o + a => a, ~ o + a => a, ~ o => o] L,        % 消せない。
+%    interreduce1 [~ o + a => a, o + a => a, ~ o => o] L,        % 消せる。2-3番目逆順
+     print "L=" L.
+
+
+/* どれかひとつを取り除けるなら、取り除く。取り除けないなら失敗する。 */
+pred interreduce2 i:list eq, o:list eq.
+interreduce2 EX ES :-
+             take-drop EX E EY,
+             interreduce1 [E | EY] ES.
+
+pred test812.
+test812 :-
+     interreduce2 [o + a => a, ~ o + a => a, ~ o => o] L,       % 真ん中のを消す。
+     print "L=" L.
+
+
+/* 失敗するまで繰り返す。 */
+pred interreduce i:list eq, o:list eq.
+interreduce EX ES :-
+            interreduce2 EX EY, !,
+            interreduce EY ES.
+interreduce EX EX.
+
+pred test813.
+test813 :-
+     interreduce [o + a => a, ~ o + a => a, ~ o => o] L,       % 真ん中のを消す。
+     print "L=" L.
 
 
 /* END */
