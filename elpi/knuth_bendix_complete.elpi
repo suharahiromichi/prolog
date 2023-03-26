@@ -274,6 +274,10 @@ interreduce
 */
 
 pred joinable i:tm, i:list eq, i:tm.
+joinable T ES T2 :-
+         std.fold ES T (e\ t\ t2\ red t e t2, !; t = t2) T2.
+
+/*
 joinable T [] T.
 joinable T [E | ES] T2 :-
          red T E T1, !,
@@ -281,6 +285,7 @@ joinable T [E | ES] T2 :-
          joinable T1 ES T2.
 joinable T [_ | ES] T2 :-
          joinable T ES T2.
+*/
 
 pred test81.
 test81 :-
@@ -291,4 +296,3 @@ test82 :-
        joinable (~ ~ a + o) [~ ~ a + b => a + b, a + o => a] a.
        
 /* END */
-
