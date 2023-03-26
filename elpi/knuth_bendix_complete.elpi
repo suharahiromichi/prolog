@@ -269,4 +269,26 @@ pred test78.
 test78 :-
        std.spy(a + c >> a + b).
     
+/*
+interreduce
+*/
+
+pred joinable i:tm, i:list eq, i:tm.
+joinable T [] T.
+joinable T [E | ES] T2 :-
+         red T E T1, !,
+%        print "T E T1 =" T E T1,
+         joinable T1 ES T2.
+joinable T [_ | ES] T2 :-
+         joinable T ES T2.
+
+pred test81.
+test81 :-
+       joinable (~ o + a) [~ o => o, o + a => a] a.
+
+pred test82.
+test82 :-
+       joinable (~ ~ a + o) [~ ~ a + b => a + b, a + o => a] a.
+       
 /* END */
+
