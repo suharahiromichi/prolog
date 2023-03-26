@@ -273,26 +273,32 @@ test78 :-
 interreduce
 */
 
-pred joinable i:tm, i:list eq, i:tm.
-joinable T ES T2 :-
-         std.fold ES T (e\ t\ t2\ red t e t2, !; t = t2) T2.
-
-/*
-joinable T [] T.
-joinable T [E | ES] T2 :-
-         red T E T1, !,
-%        print "T E T1 =" T E T1,
-         joinable T1 ES T2.
-joinable T [_ | ES] T2 :-
-         joinable T ES T2.
-*/
+pred joinable i:eq, i:list eq.
+joinable (L => R) ES :-
+         std.fold ES L (e\ t\ t2\ red t e t2, !; t2 = t) R.
 
 pred test81.
 test81 :-
-       joinable (~ o + a) [~ o => o, o + a => a] a.
+       joinable (~ o + a => a) [~ o => o, o + a => a].
 
 pred test82.
 test82 :-
-       joinable (~ ~ a + o) [~ ~ a + b => a + b, a + o => a] a.
-       
+       joinable (~ ~ a + o => a) [~ ~ a + b => a + b, a + o => a].
+
+/* 同じものがあると成功するので、削除しないといけない。 */
+pred test83.
+test83 :-
+       joinable (~ ~ a + o => a) [~ ~ a + o => a].
+
+
+pred permutation i:list A, o:list A.
+pred del i:A, i:list A, o:list A.
+
+permutation [] [].
+permutation L [X | L2] :- del X L L1, permutation L1 L2.
+
+del X [X | L] L.
+del X [Y | L] [Y | L1]  :- del X L L1.
+
+
 /* END */
