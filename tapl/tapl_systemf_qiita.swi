@@ -16,7 +16,7 @@ https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_systemf_qiita.sw
 使い方の例：
   
     % swipl.
-    ?- ['tapl_systemf_qitta.swi'].
+    ?- ['tapl_systemf_qiita.swi'].
     ?- go2.
 
 Prolog処理系はSWI-Prolog (Ver.5.10.4)で動作を確認している。GNU Prologでは未確認である。

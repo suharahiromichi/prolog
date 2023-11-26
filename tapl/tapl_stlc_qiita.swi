@@ -18,7 +18,7 @@ https://github.com/suharahiromichi/prolog/blob/master/tapl/tapl_stlc_qiita.swi
   
 ```
 % swipl.
-?- ['tapl_stlc_qitta.swi'].
+?- ['tapl_stlc_qiita.swi'].
 ?- go24.
 ```
 
